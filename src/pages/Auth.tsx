@@ -66,9 +66,9 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img
-            src="/public/lovable-uploads/35515f7c-2d42-4daa-a0c4-828f51baeb92.png"
+            src="/lovable-uploads/35515f7c-2d42-4daa-a0c4-828f51baeb92.png"
             alt="PNG Logo"
-            className="mx-auto mb-4 w-24 h-24"
+            className="mx-auto mb-4 w-32 h-32 object-contain"
           />
           <h1 className="text-2xl font-bold text-white">OFFICE OF WORKERS COMPENSATION</h1>
           <h2 className="text-xl text-white">CLAIMS PROCESSING AND PAYMENT SYSTEM</h2>

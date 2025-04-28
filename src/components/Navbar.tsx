@@ -51,9 +51,9 @@ const Navbar: React.FC<NavbarProps> = ({ userRole, onLogout }) => {
           <div className="flex items-center space-x-4">
             <Link to="/" className="flex items-center space-x-2">
               <img 
-                src="/public/lovable-uploads/35515f7c-2d42-4daa-a0c4-828f51baeb92.png" 
+                src="/lovable-uploads/35515f7c-2d42-4daa-a0c4-828f51baeb92.png" 
                 alt="PNG Logo" 
-                className="h-8 w-8"
+                className="h-10 w-10 object-contain"
               />
               <div className="hidden md:block">
                 <div className="font-bold text-sm">OFFICE OF WORKERS COMPENSATION</div>
