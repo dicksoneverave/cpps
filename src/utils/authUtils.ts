@@ -12,7 +12,7 @@ export const getUserRole = async (userId: string): Promise<string | null> => {
         group_id,
         owc_usergroups!inner(title)
       `)
-      .eq('user_id', userId)
+      .eq('user_id', parseInt(userId, 10))
       .single();
 
     if (error) {

@@ -125,21 +125,26 @@ export const getUserById = async (userId: number): Promise<User | null> => {
 
 // Get user's group
 export const getUserGroup = async (userId: number): Promise<UserGroup | null> => {
-  const { data, error } = await supabase
-    .from('owc_user_usergroup_map')
-    .select(`
-      group_id,
-      owc_usergroups!inner(*)
-    `)
-    .eq('user_id', userId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('owc_user_usergroup_map')
+      .select(`
+        group_id,
+        owc_usergroups!inner(*)
+      `)
+      .eq('user_id', userId)
+      .single();
 
-  if (error) {
-    console.error(`Error fetching user group for user ${userId}:`, error);
+    if (error) {
+      console.error(`Error fetching user group for user ${userId}:`, error);
+      return null;
+    }
+
+    return data?.owc_usergroups || null;
+  } catch (error) {
+    console.error(`Error in getUserGroup:`, error);
     return null;
   }
-
-  return data?.owc_usergroups || null;
 };
 
 // Get menu types

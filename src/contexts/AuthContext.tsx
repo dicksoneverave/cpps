@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
+import { getUserRole } from "@/utils/authUtils";
 
 interface AuthContextType {
   session: Session | null;
@@ -58,23 +59,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // In a real implementation, we would fetch the user's role from the database
-      // For now, we'll just set a default role based on email domain
-      // This will be replaced with actual role lookup from owc_usergroups and owc_user_usergroup_map
-      const { data, error } = await supabase
-        .from('owc_users')
-        .select('id, email, authProvider')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching user data:", error);
-        setUserRole("User");
-      } else if (data) {
-        // Here we'd typically join with usergroups to get the actual role
-        // For now, we'll just use "Admin" as a placeholder
-        setUserRole("User");
-      }
+      // Query the database to get the user's role using authUtils helper
+      const role = await getUserRole(userId);
+      setUserRole(role);
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
       setUserRole("User");
