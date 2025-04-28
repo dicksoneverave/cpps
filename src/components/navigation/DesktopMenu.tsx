@@ -37,7 +37,7 @@ interface DesktopMenuProps {
 
 const DesktopMenu: React.FC<DesktopMenuProps> = ({ userRole, onLogout }) => {
   return (
-    <div className="hidden md:flex space-x-1">
+    <div className="hidden md:flex space-x-1 items-center">
       <NavigationMenu>
         <NavigationMenuList>
           <NavigationMenuItem>
@@ -100,14 +100,28 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ userRole, onLogout }) => {
             </NavigationMenuContent>
           </NavigationMenuItem>
           
-          <NavigationMenuItem>
-            <Link to="/login">
-              <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-white/10")}>
-                <LogIn className="w-4 h-4 mr-2" />
-                LOGIN
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
+          {!userRole ? (
+            <NavigationMenuItem>
+              <Link to="/login">
+                <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-white/10")}>
+                  <LogIn className="w-4 h-4 mr-2" />
+                  LOGIN
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+          ) : (
+            <NavigationMenuItem>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onLogout} 
+                className="bg-transparent border border-white text-white hover:bg-white/20"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                Logout
+              </Button>
+            </NavigationMenuItem>
+          )}
 
           <NavigationMenuItem>
             <Link to="/help">

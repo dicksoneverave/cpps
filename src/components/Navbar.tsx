@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import Logo from "./navigation/Logo";
 import DesktopMenu from "./navigation/DesktopMenu";
 import MobileMenu from "./navigation/MobileMenu";
@@ -29,8 +29,19 @@ const Navbar: React.FC<NavbarProps> = ({ userRole, onLogout }) => {
           {/* Desktop Navigation */}
           <DesktopMenu userRole={userRole} onLogout={onLogout} />
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          {/* Mobile Menu Button and Logout Button */}
+          <div className="md:hidden flex items-center space-x-2">
+            {userRole && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onLogout} 
+                className="bg-transparent border border-white text-white hover:bg-white/20"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                Logout
+              </Button>
+            )}
             <Button 
               variant="ghost"
               size="icon"
