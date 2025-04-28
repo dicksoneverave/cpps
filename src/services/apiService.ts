@@ -140,7 +140,19 @@ export const getUserGroup = async (userId: number): Promise<UserGroup | null> =>
       return null;
     }
 
-    return data?.owc_usergroups || null;
+    // Make sure we have a proper UserGroup object
+    if (data && data.owc_usergroups) {
+      const userGroup: UserGroup = {
+        id: data.owc_usergroups.id,
+        parent_id: data.owc_usergroups.parent_id,
+        title: data.owc_usergroups.title,
+        rgt: data.owc_usergroups.rgt,
+        lft: data.owc_usergroups.lft
+      };
+      return userGroup;
+    }
+    
+    return null;
   } catch (error) {
     console.error(`Error in getUserGroup:`, error);
     return null;
