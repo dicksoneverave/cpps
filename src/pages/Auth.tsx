@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import bcrypt from "bcryptjs";
+import MD5 from 'crypto-js/md5';
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -30,14 +29,21 @@ const Auth = () => {
     checkSession();
   }, [navigate]);
 
-  // Function to verify password with bcrypt or PHP's $2y$ format
-  const verifyPassword = async (plainPassword: string, hashedPassword: string): Promise<boolean> => {
+  // Function to verify password with MD5 hash (Joomla format)
+  const verifyJoomlaPassword = (plainPassword: string, hashedPassword: string): boolean => {
     try {
-      // Handle PHP's $2y$ format (convert to $2a$ which is what bcryptjs expects)
-      const compatibleHash = hashedPassword.replace(/^\$2y\$/, '$2a$');
+      // Create MD5 hash of the plain password
+      const md5Hash = MD5(plainPassword).toString();
       
-      // Use bcrypt's compare function to verify the password
-      return await bcrypt.compare(plainPassword, compatibleHash);
+      // Compare the hashes - Joomla sometimes prefixes the hash
+      // If the hash contains a colon, it's using a format like "md5:hash"
+      if (hashedPassword.includes(':')) {
+        const [, storedHash] = hashedPassword.split(':');
+        return md5Hash === storedHash;
+      }
+      
+      // Otherwise, compare directly
+      return md5Hash === hashedPassword;
     } catch (err) {
       console.error("Password verification error:", err);
       return false;
@@ -70,8 +76,8 @@ const Auth = () => {
           throw new Error('Invalid email or password');
         }
 
-        // Use bcrypt to verify the password
-        const passwordValid = await verifyPassword(password, userData.password);
+        // Use MD5 verification for Joomla password format
+        const passwordValid = verifyJoomlaPassword(password, userData.password);
         
         if (!passwordValid) {
           throw new Error('Invalid email or password');
