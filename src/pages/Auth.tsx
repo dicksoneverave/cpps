@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import bcrypt from "bcryptjs";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -28,6 +29,20 @@ const Auth = () => {
     
     checkSession();
   }, [navigate]);
+
+  // Function to verify password with bcrypt or PHP's $2y$ format
+  const verifyPassword = async (plainPassword: string, hashedPassword: string): Promise<boolean> => {
+    try {
+      // Handle PHP's $2y$ format (convert to $2a$ which is what bcryptjs expects)
+      const compatibleHash = hashedPassword.replace(/^\$2y\$/, '$2a$');
+      
+      // Use bcrypt's compare function to verify the password
+      return await bcrypt.compare(plainPassword, compatibleHash);
+    } catch (err) {
+      console.error("Password verification error:", err);
+      return false;
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +70,10 @@ const Auth = () => {
           throw new Error('Invalid email or password');
         }
 
-        // Check password - Note: In production, you should use secure password verification
-        if (userData.password !== password) {
+        // Use bcrypt to verify the password
+        const passwordValid = await verifyPassword(password, userData.password);
+        
+        if (!passwordValid) {
           throw new Error('Invalid email or password');
         }
 
