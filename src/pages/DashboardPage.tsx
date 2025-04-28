@@ -5,11 +5,13 @@ import Navbar from "@/components/Navbar";
 import Dashboard from "@/components/Dashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
 
 const DashboardPage: React.FC = () => {
   const { user, userRole, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [roleSpecificMenu, setRoleSpecificMenu] = useState<string>("default");
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -74,13 +76,31 @@ const DashboardPage: React.FC = () => {
     }
   }, [user, userRole, loading, navigate]);
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        variant: "destructive",
+        title: "Logout failed",
+        description: "There was an error logging out. Please try again.",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar userRole={userRole || undefined} onLogout={logout} />
+      <Navbar userRole={userRole || undefined} onLogout={handleLogout} />
       
       <div className="flex-1">
         <div className="container mx-auto p-4">

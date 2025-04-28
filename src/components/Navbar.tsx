@@ -43,7 +43,12 @@ const Navbar: React.FC<NavbarProps> = ({ userRole, onLogout }) => {
         </div>
 
         {/* Mobile Navigation */}
-        <MobileMenu isMenuOpen={isMenuOpen} toggleMenu={toggleMenu} />
+        <MobileMenu 
+          isMenuOpen={isMenuOpen} 
+          toggleMenu={toggleMenu} 
+          userRole={userRole} 
+          onLogout={onLogout}
+        />
       </div>
     </header>
   );
