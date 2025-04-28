@@ -56,17 +56,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // For owc_users, use their usergroup to determine role
         if (parsedUser.id) {
           try {
-            const { data, error } = await supabase
+            // First fetch the user-group mapping
+            const { data: mappingData, error: mappingError } = await supabase
               .from('owc_user_usergroup_map')
-              .select(`
-                group_id,
-                owc_usergroups!inner(title)
-              `)
+              .select('group_id')
               .eq('user_id', parsedUser.id)
               .single();
             
-            if (!error && data?.owc_usergroups?.title) {
-              setUserRole(data.owc_usergroups.title);
+            if (!mappingError && mappingData?.group_id) {
+              // Then fetch the group details with the group_id
+              const { data: groupData, error: groupError } = await supabase
+                .from('owc_usergroups')
+                .select('title')
+                .eq('id', mappingData.group_id)
+                .single();
+                
+              if (!groupError && groupData?.title) {
+                setUserRole(groupData.title);
+              } else {
+                setUserRole("User"); // Default role
+              }
             } else {
               setUserRole("User"); // Default role
             }
