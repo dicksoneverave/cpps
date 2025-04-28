@@ -31,7 +31,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         
         // If session changes, fetch the user role
         if (newSession?.user) {
-          fetchUserRole(newSession.user.id);
+          // Use a timeout to avoid deadlocks in the Supabase auth state manager
+          setTimeout(() => {
+            fetchUserRole(newSession.user.id, newSession.user.email || "");
+          }, 0);
         } else {
           setUserRole(null);
         }
@@ -46,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          await fetchUserRole(currentSession.user.id);
+          await fetchUserRole(currentSession.user.id, currentSession.user.email || "");
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -61,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string, email: string) => {
     try {
       // First check if we have a stored role in session storage
       const storedRole = sessionStorage.getItem('userRole');
@@ -70,35 +73,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
       
-      // If no stored role, try to find a mapping to an owc_user
-      const { data: mappingData } = await supabase
-        .from('user_mapping')
-        .select('owc_user_id')
-        .eq('auth_user_id', userId);
-      
-      // If we found a mapping, use the owc_user_id to get the role
-      if (mappingData && mappingData.length > 0) {
-        const owcUserId = mappingData[0].owc_user_id;
-        
-        // Fetch the user's group from the mapping table
-        const { data: userGroupData } = await supabase
-          .from('owc_user_usergroup_map')
-          .select(`
-            group_id,
-            owc_usergroups:owc_usergroups(title)
-          `)
-          .eq('user_id', owcUserId)
-          .single();
+      // Try to get role from email mapping first as it's more reliable
+      // with the current database schema issues
+      try {
+        const { data: mappingData } = await supabase
+          .from('user_mapping')
+          .select('owc_user_id')
+          .eq('email', email)
+          .maybeSingle();
           
-        if (userGroupData && userGroupData.owc_usergroups) {
-          // Handle the data as an unknown type first, then cast it properly
-          const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
-          if (groupData && groupData.title) {
-            setUserRole(groupData.title);
-            sessionStorage.setItem('userRole', groupData.title);
-            return;
+        if (mappingData?.owc_user_id) {
+          const { data: userGroupData } = await supabase
+            .from('owc_user_usergroup_map')
+            .select(`
+              group_id,
+              owc_usergroups:owc_usergroups(title)
+            `)
+            .eq('user_id', mappingData.owc_user_id)
+            .maybeSingle();
+            
+          if (userGroupData?.owc_usergroups) {
+            const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
+            if (groupData?.title) {
+              setUserRole(groupData.title);
+              sessionStorage.setItem('userRole', groupData.title);
+              return;
+            }
           }
         }
+      } catch (e) {
+        console.error("Error in email-based role lookup:", e);
+        // Continue to fallback method
+      }
+      
+      // Fallback to auth user id mapping
+      try {
+        const { data: mappingData } = await supabase
+          .from('user_mapping')
+          .select('owc_user_id')
+          .eq('auth_user_id', userId)
+          .maybeSingle();
+        
+        if (mappingData?.owc_user_id) {
+          const { data: userGroupData } = await supabase
+            .from('owc_user_usergroup_map')
+            .select(`
+              group_id,
+              owc_usergroups:owc_usergroups(title)
+            `)
+            .eq('user_id', mappingData.owc_user_id)
+            .maybeSingle();
+            
+          if (userGroupData?.owc_usergroups) {
+            const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
+            if (groupData?.title) {
+              setUserRole(groupData.title);
+              sessionStorage.setItem('userRole', groupData.title);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error in auth_user_id-based role lookup:", e);
+        // Continue to fallback method
       }
       
       // Last resort, use generic role lookup

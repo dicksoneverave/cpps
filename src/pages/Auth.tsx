@@ -69,14 +69,8 @@ const Auth = () => {
     let errorMessage = "Invalid email or password. Please try again.";
     
     if (error instanceof Error) {
-      // Only show specific error messages if they would be helpful to the user
-      if (error.message.includes("database error")) {
-        errorMessage = "Login service is currently unavailable. Please try again later.";
-      } else if (error.message.includes("Invalid login")) {
-        errorMessage = "Invalid email or password. Please try again.";
-      } else {
-        errorMessage = error.message;
-      }
+      // Display the specific error message from our service
+      errorMessage = error.message;
     }
     
     setError(errorMessage);
@@ -109,6 +103,11 @@ const Auth = () => {
               error={error}
             />
           </CardContent>
+          <CardFooter className="flex justify-center">
+            <div className="text-sm text-gray-500">
+              Having trouble logging in? Please contact system administration.
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </div>
