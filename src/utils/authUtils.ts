@@ -20,8 +20,15 @@ export const getUserRole = async (userId: string): Promise<string | null> => {
       return null;
     }
 
-    if (data && data.owc_usergroups) {
-      return data.owc_usergroups.title;
+    // Type guard to ensure we have the correct data structure
+    if (data && typeof data === 'object' && 'owc_usergroups' in data && 
+        data.owc_usergroups && typeof data.owc_usergroups === 'object') {
+      
+      const userGroupData = data.owc_usergroups as any;
+      
+      if ('title' in userGroupData) {
+        return userGroupData.title;
+      }
     }
 
     return null;

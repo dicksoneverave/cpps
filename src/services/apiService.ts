@@ -140,16 +140,29 @@ export const getUserGroup = async (userId: number): Promise<UserGroup | null> =>
       return null;
     }
 
-    // Make sure we have a proper UserGroup object
-    if (data && data.owc_usergroups) {
-      const userGroup: UserGroup = {
-        id: data.owc_usergroups.id,
-        parent_id: data.owc_usergroups.parent_id,
-        title: data.owc_usergroups.title,
-        rgt: data.owc_usergroups.rgt,
-        lft: data.owc_usergroups.lft
-      };
-      return userGroup;
+    // Type guard to ensure we have the correct data structure
+    if (data && typeof data === 'object' && 'owc_usergroups' in data && 
+        data.owc_usergroups && typeof data.owc_usergroups === 'object') {
+      
+      const userGroupData = data.owc_usergroups as any;
+      
+      // Ensure all required properties exist
+      if ('id' in userGroupData && 
+          'parent_id' in userGroupData && 
+          'title' in userGroupData && 
+          'rgt' in userGroupData && 
+          'lft' in userGroupData) {
+        
+        const userGroup: UserGroup = {
+          id: userGroupData.id,
+          parent_id: userGroupData.parent_id,
+          title: userGroupData.title,
+          rgt: userGroupData.rgt,
+          lft: userGroupData.lft
+        };
+        
+        return userGroup;
+      }
     }
     
     return null;
