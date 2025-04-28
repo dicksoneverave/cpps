@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,34 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MD5 from 'crypto-js/md5';
+
+// Define interfaces for our query results
+interface UserGroupData {
+  group_id: number;
+  owc_usergroups: {
+    title: string;
+  } | null;
+}
+
+interface OWCUser {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  block: string;
+  sendEmail?: string;
+  registerDate?: string;
+  lastvisitDate?: string;
+  activation?: string;
+  resetCount?: string;
+  otpKey?: string;
+  otep?: string;
+  requireReset?: string;
+  authProvider?: string;
+  params?: any;
+  role?: string; // Optional property we'll add
+}
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -82,10 +109,12 @@ const Auth = () => {
           throw new Error('User not found');
         }
 
-        console.log("Found user in owc_users table:", userData.id);
+        // Cast userData to our defined type
+        const owcUser = userData as OWCUser;
+        console.log("Found user in owc_users table:", owcUser.id);
 
         // Use MD5 verification for Joomla password format
-        const passwordValid = verifyJoomlaPassword(password, userData.password);
+        const passwordValid = verifyJoomlaPassword(password, owcUser.password);
         
         if (!passwordValid) {
           console.error("Password verification failed");
@@ -94,34 +123,40 @@ const Auth = () => {
 
         console.log("Password verification successful");
 
-        // Fetch the user's role (usergroup) from the mapping table
-        const { data: userGroupData, error: userGroupError } = await supabase
-          .from('owc_user_usergroup_map')
-          .select(`
-            group_id,
-            owc_usergroups!inner(title)
-          `)
-          .eq('user_id', userData.id)
-          .single();
+        try {
+          // Fetch the user's role (usergroup) from the mapping table
+          const { data: userGroupData, error: userGroupError } = await supabase
+            .from('owc_user_usergroup_map')
+            .select(`
+              group_id,
+              owc_usergroups:group_id(title)
+            `)
+            .eq('user_id', owcUser.id)
+            .single();
 
-        if (userGroupError) {
-          console.error("Error fetching user role:", userGroupError);
-        } else {
-          console.log("User group data:", userGroupData);
-          // Add the user's role to the user data
-          if (userGroupData?.owc_usergroups?.title) {
-            userData.role = userGroupData.owc_usergroups.title;
+          if (!userGroupError && userGroupData) {
+            console.log("User group data:", userGroupData);
+            // Add the user's role to the user data if it exists
+            const typedUserGroupData = userGroupData as unknown as UserGroupData;
+            if (typedUserGroupData.owc_usergroups?.title) {
+              owcUser.role = typedUserGroupData.owc_usergroups.title;
+            }
+          } else {
+            console.error("Error fetching user role:", userGroupError);
           }
+        } catch (roleError) {
+          console.error("Error processing user role:", roleError);
+          // Continue with login even if role fetch fails
         }
 
         // If authentication with owc_users is successful
         toast({
           title: "Login successful",
-          description: `Welcome back, ${userData.name || 'User'}!`,
+          description: `Welcome back, ${owcUser.name || 'User'}!`,
         });
         
         // Since we're not using Supabase Auth for this user, we need to handle session manually
-        sessionStorage.setItem('owc_user', JSON.stringify(userData));
+        sessionStorage.setItem('owc_user', JSON.stringify(owcUser));
         navigate("/dashboard");
         return;
       }
