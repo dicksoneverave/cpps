@@ -67,8 +67,13 @@ const Auth = () => {
         <div className="text-center mb-8">
           <img
             src="/lovable-uploads/35515f7c-2d42-4daa-a0c4-828f51baeb92.png"
-            alt="PNG Logo"
+            alt="OWC Logo"
             className="mx-auto mb-4 w-32 h-32 object-contain"
+            onError={(e) => {
+              console.error("Image failed to load");
+              const target = e.target as HTMLImageElement;
+              target.style.display = "none";
+            }}
           />
           <h1 className="text-2xl font-bold text-white">OFFICE OF WORKERS COMPENSATION</h1>
           <h2 className="text-xl text-white">CLAIMS PROCESSING AND PAYMENT SYSTEM</h2>
