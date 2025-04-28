@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,7 +58,7 @@ const Auth = () => {
 
     try {
       // First try standard Supabase auth
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -72,15 +73,45 @@ const Auth = () => {
           .eq('email', email)
           .single();
 
-        if (userError || !userData) {
+        if (userError) {
+          console.error("User lookup error:", userError);
           throw new Error('Invalid email or password');
         }
+
+        if (!userData) {
+          throw new Error('User not found');
+        }
+
+        console.log("Found user in owc_users table:", userData.id);
 
         // Use MD5 verification for Joomla password format
         const passwordValid = verifyJoomlaPassword(password, userData.password);
         
         if (!passwordValid) {
-          throw new Error('Invalid email or password');
+          console.error("Password verification failed");
+          throw new Error('Invalid password');
+        }
+
+        console.log("Password verification successful");
+
+        // Fetch the user's role (usergroup) from the mapping table
+        const { data: userGroupData, error: userGroupError } = await supabase
+          .from('owc_user_usergroup_map')
+          .select(`
+            group_id,
+            owc_usergroups!inner(title)
+          `)
+          .eq('user_id', userData.id)
+          .single();
+
+        if (userGroupError) {
+          console.error("Error fetching user role:", userGroupError);
+        } else {
+          console.log("User group data:", userGroupData);
+          // Add the user's role to the user data
+          if (userGroupData?.owc_usergroups?.title) {
+            userData.role = userGroupData.owc_usergroups.title;
+          }
         }
 
         // If authentication with owc_users is successful
@@ -95,7 +126,7 @@ const Auth = () => {
         return;
       }
 
-      if (data.user) {
+      if (authData.user) {
         toast({
           title: "Login successful",
           description: "Welcome back!",
