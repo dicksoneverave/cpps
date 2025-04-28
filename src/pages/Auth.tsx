@@ -19,7 +19,9 @@ const Auth = () => {
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
-      if (data.session) {
+      
+      // Check for both Supabase session and owc_user in session storage
+      if (data.session || sessionStorage.getItem('owc_user')) {
         navigate("/dashboard");
       }
     };
@@ -40,6 +42,8 @@ const Auth = () => {
       });
 
       if (authError) {
+        console.log("Supabase auth failed, trying owc_users table");
+        
         // If standard auth fails, try to find the user in the owc_users table
         const { data: userData, error: userError } = await supabase
           .from('owc_users')
@@ -51,8 +55,7 @@ const Auth = () => {
           throw new Error('Invalid email or password');
         }
 
-        // Check password - Note: This is a simplified example
-        // In production, you should use proper password hashing
+        // Check password - Note: In production, you should use secure password verification
         if (userData.password !== password) {
           throw new Error('Invalid email or password');
         }
@@ -60,11 +63,10 @@ const Auth = () => {
         // If authentication with owc_users is successful
         toast({
           title: "Login successful",
-          description: `Welcome back, ${userData.name}!`,
+          description: `Welcome back, ${userData.name || 'User'}!`,
         });
         
         // Since we're not using Supabase Auth for this user, we need to handle session manually
-        // This is a simplified approach - in a real app, you would need proper JWT tokens
         sessionStorage.setItem('owc_user', JSON.stringify(userData));
         navigate("/dashboard");
         return;
