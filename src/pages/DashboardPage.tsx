@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Dashboard from "@/components/Dashboard";
@@ -8,9 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 
 const DashboardPage: React.FC = () => {
-  const { user, userRole, loading, logout } = useAuth();
+  const { user, userRole, loading } = useAuth();
   const navigate = useNavigate();
-  const [roleSpecificMenu, setRoleSpecificMenu] = useState<string>("default");
+  const [roleSpecificMenu, setRoleSpecificMenu] = React.useState<string>("default");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -19,7 +18,6 @@ const DashboardPage: React.FC = () => {
     }
 
     // Determine the user's specific menu based on their role
-    // In a real implementation, this would come from the database
     if (userRole) {
       switch (userRole.toLowerCase()) {
         case "employer":
@@ -76,31 +74,13 @@ const DashboardPage: React.FC = () => {
     }
   }, [user, userRole, loading, navigate]);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast({
-        variant: "destructive",
-        title: "Logout failed",
-        description: "There was an error logging out. Please try again.",
-      });
-    }
-  };
-
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar userRole={userRole || undefined} onLogout={handleLogout} />
+      <Navbar />
       
       <div className="flex-1">
         <div className="container mx-auto p-4">

@@ -1,38 +1,13 @@
-
 import React from "react";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { Link } from "react-router-dom";
 
 const Home = () => {
-  const { userRole, logout } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast({
-        variant: "destructive",
-        title: "Logout failed",
-        description: "There was an error logging out. Please try again.",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar userRole={userRole || undefined} onLogout={handleLogout} />
+      <Navbar />
       
       <div className="flex-1">
         <div className="container mx-auto p-4 mt-8">

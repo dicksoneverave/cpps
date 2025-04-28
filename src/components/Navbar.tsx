@@ -1,21 +1,26 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Logo from "./navigation/Logo";
 import DesktopMenu from "./navigation/DesktopMenu";
 import MobileMenu from "./navigation/MobileMenu";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface NavbarProps {
-  userRole?: string;
-  onLogout?: () => void;
-}
-
-const Navbar: React.FC<NavbarProps> = ({ userRole, onLogout }) => {
+const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, userRole, loading, logout } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   return (
@@ -27,21 +32,10 @@ const Navbar: React.FC<NavbarProps> = ({ userRole, onLogout }) => {
           </div>
 
           {/* Desktop Navigation */}
-          <DesktopMenu userRole={userRole} onLogout={onLogout} />
+          <DesktopMenu isAuthenticated={!!user} userRole={userRole || undefined} onLogout={handleLogout} />
 
-          {/* Mobile Menu Button and Logout Button */}
-          <div className="md:hidden flex items-center space-x-2">
-            {userRole && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onLogout} 
-                className="bg-transparent border border-white text-white hover:bg-white/20"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                Logout
-              </Button>
-            )}
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center">
             <Button 
               variant="ghost"
               size="icon"
@@ -57,8 +51,9 @@ const Navbar: React.FC<NavbarProps> = ({ userRole, onLogout }) => {
         <MobileMenu 
           isMenuOpen={isMenuOpen} 
           toggleMenu={toggleMenu} 
-          userRole={userRole} 
-          onLogout={onLogout}
+          isAuthenticated={!!user}
+          userRole={userRole || undefined} 
+          onLogout={handleLogout}
         />
       </div>
     </header>

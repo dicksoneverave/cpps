@@ -3,11 +3,9 @@ import React from "react";
 import { Link } from "react-router-dom";
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import {
@@ -28,16 +26,17 @@ import {
 import { cn } from "@/lib/utils";
 
 interface DesktopMenuProps {
+  isAuthenticated: boolean;
   userRole?: string;
   onLogout?: () => void;
 }
 
-const DesktopMenu: React.FC<DesktopMenuProps> = ({ userRole, onLogout }) => {
+const DesktopMenu: React.FC<DesktopMenuProps> = ({ isAuthenticated, userRole, onLogout }) => {
   return (
     <div className="hidden md:flex space-x-1 items-center">
       <NavigationMenu>
         <NavigationMenuList>
-          {!userRole ? (
+          {!isAuthenticated ? (
             <NavigationMenuItem>
               <Link to="/login">
                 <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-white/10")}>
@@ -55,7 +54,7 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ userRole, onLogout }) => {
                 className="bg-transparent border border-white text-white hover:bg-white/20"
               >
                 <LogOut className="w-4 h-4 mr-1" />
-                Logout
+                LOGOUT
               </Button>
             </NavigationMenuItem>
           )}
@@ -78,7 +77,7 @@ const DesktopMenu: React.FC<DesktopMenuProps> = ({ userRole, onLogout }) => {
             </Link>
           </NavigationMenuItem>
 
-          {userRole && (
+          {isAuthenticated && userRole && (
             <NavigationMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
