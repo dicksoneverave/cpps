@@ -10,10 +10,27 @@ export interface UserGroupData {
 }
 
 export const loginWithSupabaseAuth = async (email: string, password: string) => {
-  return await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const response = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    // Check for errors in the response
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+
+    return response;
+  } catch (error) {
+    // Handle specific database errors with more user-friendly messages
+    if (error instanceof Error && error.message.includes("database error")) {
+      throw new Error("Login failed due to a database error. Please try again later.");
+    } else {
+      // Re-throw the original error
+      throw error;
+    }
+  }
 };
 
 export const fetchUserRoleFromMapping = async (email: string) => {

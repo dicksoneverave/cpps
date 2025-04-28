@@ -40,15 +40,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Check for existing session
     const initializeAuth = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        await fetchUserRole(currentSession.user.id);
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          await fetchUserRole(currentSession.user.id);
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     initializeAuth();
@@ -59,7 +63,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // First check if we can find a mapping to an owc_user
+      // First check if we have a stored role in session storage
+      const storedRole = sessionStorage.getItem('userRole');
+      if (storedRole) {
+        setUserRole(storedRole);
+        return;
+      }
+      
+      // If no stored role, try to find a mapping to an owc_user
       const { data: mappingData } = await supabase
         .from('user_mapping')
         .select('owc_user_id')
@@ -84,35 +95,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
           if (groupData && groupData.title) {
             setUserRole(groupData.title);
+            sessionStorage.setItem('userRole', groupData.title);
             return;
           }
         }
       }
       
-      // If no mapping found or no role found, fall back to the stored role
-      const storedRole = sessionStorage.getItem('userRole');
-      if (storedRole) {
-        setUserRole(storedRole);
-        return;
-      }
-      
       // Last resort, use generic role lookup
       const role = await getUserRole(userId);
       setUserRole(role);
+      if (role) {
+        sessionStorage.setItem('userRole', role);
+      }
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
-      setUserRole("User");
+      setUserRole("User"); // Default role if all else fails
     }
   };
 
   const logout = async () => {
     sessionStorage.removeItem('userRole');
     
-    // Sign out from Supabase Auth
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setUserRole(null);
+    try {
+      // Sign out from Supabase Auth
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   };
 
   const value = {

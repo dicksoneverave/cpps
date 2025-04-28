@@ -34,12 +34,7 @@ const Auth = () => {
     setError(null);
 
     try {
-      // Use standard Supabase auth
-      const { data: authData, error: authError } = await loginWithSupabaseAuth(email, password);
-
-      if (authError) {
-        throw new Error(authError.message);
-      }
+      const { data: authData } = await loginWithSupabaseAuth(email, password);
 
       if (authData.user) {
         console.log("Logged in with Supabase auth:", authData.user.id);
@@ -71,10 +66,17 @@ const Auth = () => {
 
   const handleLoginError = (error: any) => {
     console.error("Login error:", error);
-    let errorMessage = "An error occurred. Please try again.";
+    let errorMessage = "Invalid email or password. Please try again.";
     
     if (error instanceof Error) {
-      errorMessage = error.message;
+      // Only show specific error messages if they would be helpful to the user
+      if (error.message.includes("database error")) {
+        errorMessage = "Login service is currently unavailable. Please try again later.";
+      } else if (error.message.includes("Invalid login")) {
+        errorMessage = "Invalid email or password. Please try again.";
+      } else {
+        errorMessage = error.message;
+      }
     }
     
     setError(errorMessage);
