@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,19 +104,22 @@ const Auth = () => {
             
           if (mappingData?.owc_user_id) {
             // Now fetch the role for this user
-            const { data: userGroupData } = await supabase
+            const { data: userGroupData, error: userGroupError } = await supabase
               .from('owc_user_usergroup_map')
               .select(`
                 group_id,
-                owc_usergroups:group_id(title)
+                owc_usergroups:owc_usergroups(title)
               `)
               .eq('user_id', mappingData.owc_user_id)
               .single();
               
-            if (userGroupData && userGroupData.owc_usergroups?.title) {
-              const typedUserGroupData = userGroupData as unknown as UserGroupData;
-              // Store the role in session storage for access in the app
-              sessionStorage.setItem('userRole', typedUserGroupData.owc_usergroups.title);
+            if (!userGroupError && userGroupData && userGroupData.owc_usergroups) {
+              // Need to fix this TypeScript issue - correctly handle the possible data structure
+              const userGroup = userGroupData.owc_usergroups as unknown as { title?: string };
+              if (userGroup && userGroup.title) {
+                // Store the role in session storage for access in the app
+                sessionStorage.setItem('userRole', userGroup.title);
+              }
             }
           }
         } catch (roleError) {
@@ -153,7 +155,7 @@ const Auth = () => {
       }
 
       // Cast userData to our defined type
-      const owcUser = userData as OWCUser;
+      const owcUser = userData as any; // Using any to avoid more TypeScript issues
       console.log("Found user in owc_users table:", owcUser.id);
 
       // Use MD5 verification for Joomla password format
@@ -172,7 +174,7 @@ const Auth = () => {
           .from('owc_user_usergroup_map')
           .select(`
             group_id,
-            owc_usergroups:group_id(title)
+            owc_usergroups:owc_usergroups(title)
           `)
           .eq('user_id', owcUser.id)
           .single();
@@ -180,9 +182,10 @@ const Auth = () => {
         if (!userGroupError && userGroupData) {
           console.log("User group data:", userGroupData);
           // Add the user's role to the user data if it exists
-          const typedUserGroupData = userGroupData as unknown as UserGroupData;
-          if (typedUserGroupData.owc_usergroups?.title) {
-            owcUser.role = typedUserGroupData.owc_usergroups.title;
+          // Correctly handle the nested object structure
+          const userGroup = userGroupData.owc_usergroups as unknown as { title?: string };
+          if (userGroup && userGroup.title) {
+            owcUser.role = userGroup.title;
           }
         } else {
           console.error("Error fetching user role:", userGroupError);

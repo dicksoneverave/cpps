@@ -114,14 +114,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           .from('owc_user_usergroup_map')
           .select(`
             group_id,
-            owc_usergroups!inner(title)
+            owc_usergroups:owc_usergroups(title)
           `)
           .eq('user_id', owcUserId)
           .single();
           
-        if (userGroupData && userGroupData.owc_usergroups && typeof userGroupData.owc_usergroups === 'object') {
-          const groupData = userGroupData.owc_usergroups as any;
-          if ('title' in groupData) {
+        if (userGroupData && userGroupData.owc_usergroups) {
+          // Handle the data as an unknown type first, then cast it properly
+          const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
+          if (groupData && groupData.title) {
             setUserRole(groupData.title);
             return;
           }
