@@ -2126,7 +2126,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_mapping: {
+        Row: {
+          auth_user_id: string | null
+          email: string | null
+          name: string | null
+          owc_user_id: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

@@ -99,7 +99,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Query the database to get the user's role using authUtils helper
+      // First check if we can find a mapping to an owc_user
+      const { data: mappingData } = await supabase
+        .from('user_mapping')
+        .select('owc_user_id')
+        .eq('auth_user_id', userId);
+      
+      // If we found a mapping, use the owc_user_id to get the role
+      if (mappingData && mappingData.length > 0) {
+        const owcUserId = mappingData[0].owc_user_id;
+        
+        // Fetch the user's group from the mapping table
+        const { data: userGroupData } = await supabase
+          .from('owc_user_usergroup_map')
+          .select(`
+            group_id,
+            owc_usergroups!inner(title)
+          `)
+          .eq('user_id', owcUserId)
+          .single();
+          
+        if (userGroupData && userGroupData.owc_usergroups && typeof userGroupData.owc_usergroups === 'object') {
+          const groupData = userGroupData.owc_usergroups as any;
+          if ('title' in groupData) {
+            setUserRole(groupData.title);
+            return;
+          }
+        }
+      }
+      
+      // If no mapping found or no role found, fall back to the stored role
+      const storedRole = sessionStorage.getItem('userRole');
+      if (storedRole) {
+        setUserRole(storedRole);
+        return;
+      }
+      
+      // Last resort, use generic role lookup
       const role = await getUserRole(userId);
       setUserRole(role);
     } catch (error) {
@@ -111,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     // Clear any owc_user from session storage
     sessionStorage.removeItem('owc_user');
+    sessionStorage.removeItem('userRole');
     setOwcUser(null);
     
     // Also sign out from Supabase Auth

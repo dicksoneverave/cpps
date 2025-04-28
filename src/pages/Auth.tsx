@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,90 +85,123 @@ const Auth = () => {
     setError(null);
 
     try {
-      // First try standard Supabase auth
+      // First try standard Supabase auth (users migrated to auth.users)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) {
-        console.log("Supabase auth failed, trying owc_users table");
+      if (!authError && authData.user) {
+        // Successfully logged in with Supabase auth
+        console.log("Logged in with Supabase auth:", authData.user.id);
         
-        // If standard auth fails, try to find the user in the owc_users table
-        const { data: userData, error: userError } = await supabase
-          .from('owc_users')
-          .select('*')
-          .eq('email', email)
-          .single();
-
-        if (userError) {
-          console.error("User lookup error:", userError);
-          throw new Error('Invalid email or password');
-        }
-
-        if (!userData) {
-          throw new Error('User not found');
-        }
-
-        // Cast userData to our defined type
-        const owcUser = userData as OWCUser;
-        console.log("Found user in owc_users table:", owcUser.id);
-
-        // Use MD5 verification for Joomla password format
-        const passwordValid = verifyJoomlaPassword(password, owcUser.password);
-        
-        if (!passwordValid) {
-          console.error("Password verification failed");
-          throw new Error('Invalid password');
-        }
-
-        console.log("Password verification successful");
-
+        // Get user role from the owc_users table via the mapping view
         try {
-          // Fetch the user's role (usergroup) from the mapping table
-          const { data: userGroupData, error: userGroupError } = await supabase
-            .from('owc_user_usergroup_map')
-            .select(`
-              group_id,
-              owc_usergroups:group_id(title)
-            `)
-            .eq('user_id', owcUser.id)
+          const { data: mappingData } = await supabase
+            .from('user_mapping')
+            .select('owc_user_id')
+            .eq('email', email)
             .single();
-
-          if (!userGroupError && userGroupData) {
-            console.log("User group data:", userGroupData);
-            // Add the user's role to the user data if it exists
-            const typedUserGroupData = userGroupData as unknown as UserGroupData;
-            if (typedUserGroupData.owc_usergroups?.title) {
-              owcUser.role = typedUserGroupData.owc_usergroups.title;
+            
+          if (mappingData?.owc_user_id) {
+            // Now fetch the role for this user
+            const { data: userGroupData } = await supabase
+              .from('owc_user_usergroup_map')
+              .select(`
+                group_id,
+                owc_usergroups:group_id(title)
+              `)
+              .eq('user_id', mappingData.owc_user_id)
+              .single();
+              
+            if (userGroupData && userGroupData.owc_usergroups?.title) {
+              const typedUserGroupData = userGroupData as unknown as UserGroupData;
+              // Store the role in session storage for access in the app
+              sessionStorage.setItem('userRole', typedUserGroupData.owc_usergroups.title);
             }
-          } else {
-            console.error("Error fetching user role:", userGroupError);
           }
         } catch (roleError) {
-          console.error("Error processing user role:", roleError);
+          console.error("Error fetching user role:", roleError);
           // Continue with login even if role fetch fails
         }
 
-        // If authentication with owc_users is successful
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${owcUser.name || 'User'}!`,
-        });
-        
-        // Since we're not using Supabase Auth for this user, we need to handle session manually
-        sessionStorage.setItem('owc_user', JSON.stringify(owcUser));
-        navigate("/dashboard");
-        return;
-      }
-
-      if (authData.user) {
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
         navigate("/dashboard");
+        return;
       }
+      
+      // If Supabase auth failed, try the owc_users table as fallback
+      console.log("Supabase auth failed, trying owc_users table");
+      
+      // Try to find the user in the owc_users table
+      const { data: userData, error: userError } = await supabase
+        .from('owc_users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (userError) {
+        console.error("User lookup error:", userError);
+        throw new Error('Invalid email or password');
+      }
+
+      if (!userData) {
+        throw new Error('User not found');
+      }
+
+      // Cast userData to our defined type
+      const owcUser = userData as OWCUser;
+      console.log("Found user in owc_users table:", owcUser.id);
+
+      // Use MD5 verification for Joomla password format
+      const passwordValid = verifyJoomlaPassword(password, owcUser.password);
+      
+      if (!passwordValid) {
+        console.error("Password verification failed");
+        throw new Error('Invalid password');
+      }
+
+      console.log("Password verification successful");
+
+      try {
+        // Fetch the user's role (usergroup) from the mapping table
+        const { data: userGroupData, error: userGroupError } = await supabase
+          .from('owc_user_usergroup_map')
+          .select(`
+            group_id,
+            owc_usergroups:group_id(title)
+          `)
+          .eq('user_id', owcUser.id)
+          .single();
+
+        if (!userGroupError && userGroupData) {
+          console.log("User group data:", userGroupData);
+          // Add the user's role to the user data if it exists
+          const typedUserGroupData = userGroupData as unknown as UserGroupData;
+          if (typedUserGroupData.owc_usergroups?.title) {
+            owcUser.role = typedUserGroupData.owc_usergroups.title;
+          }
+        } else {
+          console.error("Error fetching user role:", userGroupError);
+        }
+      } catch (roleError) {
+        console.error("Error processing user role:", roleError);
+        // Continue with login even if role fetch fails
+      }
+
+      // If authentication with owc_users is successful
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${owcUser.name || 'User'}!`,
+      });
+      
+      // Since we're not using Supabase Auth for this user, we need to handle session manually
+      sessionStorage.setItem('owc_user', JSON.stringify(owcUser));
+      navigate("/dashboard");
+      return;
     } catch (error) {
       console.error("Login error:", error);
       let errorMessage = "An error occurred. Please try again.";
