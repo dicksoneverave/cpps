@@ -10,7 +10,6 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   logout: () => Promise<void>;
-  owcUser: any | null; // Add owcUser for owc_users table
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,7 +21,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [owcUser, setOwcUser] = useState<any | null>(null); // Add state for owc_users
 
   useEffect(() => {
     // Set up the auth state listener first
@@ -34,7 +32,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // If session changes, fetch the user role
         if (newSession?.user) {
           fetchUserRole(newSession.user.id);
-          setOwcUser(null); // Reset owcUser when using Supabase auth
         } else {
           setUserRole(null);
         }
@@ -47,44 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
-      // Check for owc_user in session storage
-      const storedOwcUser = sessionStorage.getItem('owc_user');
-      if (storedOwcUser) {
-        const parsedUser = JSON.parse(storedOwcUser);
-        setOwcUser(parsedUser);
-        
-        // For owc_users, use their usergroup to determine role
-        if (parsedUser.id) {
-          try {
-            // First fetch the user-group mapping
-            const { data: mappingData, error: mappingError } = await supabase
-              .from('owc_user_usergroup_map')
-              .select('group_id')
-              .eq('user_id', parsedUser.id)
-              .single();
-            
-            if (!mappingError && mappingData?.group_id) {
-              // Then fetch the group details with the group_id
-              const { data: groupData, error: groupError } = await supabase
-                .from('owc_usergroups')
-                .select('title')
-                .eq('id', mappingData.group_id)
-                .single();
-                
-              if (!groupError && groupData?.title) {
-                setUserRole(groupData.title);
-              } else {
-                setUserRole("User"); // Default role
-              }
-            } else {
-              setUserRole("User"); // Default role
-            }
-          } catch (error) {
-            console.error("Error fetching owc user role:", error);
-            setUserRole("User"); // Default role on error
-          }
-        }
-      } else if (currentSession?.user) {
+      if (currentSession?.user) {
         await fetchUserRole(currentSession.user.id);
       }
       
@@ -146,12 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = async () => {
-    // Clear any owc_user from session storage
-    sessionStorage.removeItem('owc_user');
     sessionStorage.removeItem('userRole');
-    setOwcUser(null);
     
-    // Also sign out from Supabase Auth
+    // Sign out from Supabase Auth
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
@@ -164,7 +121,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     userRole,
     loading,
     logout,
-    owcUser,
   };
 
   return (

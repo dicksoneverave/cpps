@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/components/ui/use-toast";
 import LoginForm from "@/components/auth/LoginForm";
 import AuthHeader from "@/components/auth/AuthHeader";
-import { verifyJoomlaPassword } from "@/utils/passwordUtils";
-import { loginWithSupabaseAuth, fetchUserRoleFromMapping, fetchOwcUser, fetchOwcUserRole } from "@/services/authService";
+import { loginWithSupabaseAuth, fetchUserRoleFromMapping } from "@/services/authService";
 import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
@@ -21,8 +20,7 @@ const Auth = () => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       
-      // Check for both Supabase session and owc_user in session storage
-      if (data.session || sessionStorage.getItem('owc_user')) {
+      if (data.session) {
         navigate("/dashboard");
       }
     };
@@ -36,14 +34,17 @@ const Auth = () => {
     setError(null);
 
     try {
-      // First try standard Supabase auth (users migrated to auth.users)
+      // Use standard Supabase auth
       const { data: authData, error: authError } = await loginWithSupabaseAuth(email, password);
 
-      if (!authError && authData.user) {
-        // Successfully logged in with Supabase auth
+      if (authError) {
+        throw new Error(authError.message);
+      }
+
+      if (authData.user) {
         console.log("Logged in with Supabase auth:", authData.user.id);
         
-        // Get user role from the owc_users table via the mapping view
+        // Get user role from the mapping
         try {
           const userRole = await fetchUserRoleFromMapping(email);
           if (userRole) {
@@ -60,66 +61,12 @@ const Auth = () => {
           description: "Welcome back!",
         });
         navigate("/dashboard");
-        return;
       }
-      
-      // If Supabase auth failed, try the owc_users table as fallback
-      console.log("Supabase auth failed, trying owc_users table");
-      await handleLegacyLogin();
     } catch (error) {
       handleLoginError(error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLegacyLogin = async () => {
-    // Try to find the user in the owc_users table
-    const { data: userData, error: userError } = await fetchOwcUser(email);
-
-    if (userError) {
-      console.error("User lookup error:", userError);
-      throw new Error('Invalid email or password');
-    }
-
-    if (!userData) {
-      throw new Error('User not found');
-    }
-
-    // Cast userData to our defined type
-    const owcUser = userData as any; // Using any to avoid more TypeScript issues
-    console.log("Found user in owc_users table:", owcUser.id);
-
-    // Use MD5 verification for Joomla password format
-    const passwordValid = verifyJoomlaPassword(password, owcUser.password);
-    
-    if (!passwordValid) {
-      console.error("Password verification failed");
-      throw new Error('Invalid password');
-    }
-
-    console.log("Password verification successful");
-
-    try {
-      // Fetch the user's role
-      const userRole = await fetchOwcUserRole(owcUser.id);
-      if (userRole) {
-        owcUser.role = userRole;
-      }
-    } catch (roleError) {
-      console.error("Error processing user role:", roleError);
-      // Continue with login even if role fetch fails
-    }
-
-    // If authentication with owc_users is successful
-    toast({
-      title: "Login successful",
-      description: `Welcome back, ${owcUser.name || 'User'}!`,
-    });
-    
-    // Since we're not using Supabase Auth for this user, we need to handle session manually
-    sessionStorage.setItem('owc_user', JSON.stringify(owcUser));
-    navigate("/dashboard");
   };
 
   const handleLoginError = (error: any) => {
