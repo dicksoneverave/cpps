@@ -1,40 +1,13 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import LoginForm from "@/components/auth/LoginForm";
+import AuthHeader from "@/components/auth/AuthHeader";
+import { verifyJoomlaPassword } from "@/utils/passwordUtils";
+import { loginWithSupabaseAuth, fetchUserRoleFromMapping, fetchOwcUser, fetchOwcUserRole } from "@/services/authService";
 import { supabase } from "@/integrations/supabase/client";
-import MD5 from 'crypto-js/md5';
-
-// Define interfaces for our query results
-interface UserGroupData {
-  group_id: number;
-  owc_usergroups: {
-    title: string;
-  } | null;
-}
-
-interface OWCUser {
-  id: number;
-  name: string;
-  username: string;
-  email: string;
-  password: string;
-  block: string;
-  sendEmail?: string;
-  registerDate?: string;
-  lastvisitDate?: string;
-  activation?: string;
-  resetCount?: string;
-  otpKey?: string;
-  otep?: string;
-  requireReset?: string;
-  authProvider?: string;
-  params?: any;
-  role?: string; // Optional property we'll add
-}
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -57,27 +30,6 @@ const Auth = () => {
     checkSession();
   }, [navigate]);
 
-  // Function to verify password with MD5 hash (Joomla format)
-  const verifyJoomlaPassword = (plainPassword: string, hashedPassword: string): boolean => {
-    try {
-      // Create MD5 hash of the plain password
-      const md5Hash = MD5(plainPassword).toString();
-      
-      // Compare the hashes - Joomla sometimes prefixes the hash
-      // If the hash contains a colon, it's using a format like "md5:hash"
-      if (hashedPassword.includes(':')) {
-        const [, storedHash] = hashedPassword.split(':');
-        return md5Hash === storedHash;
-      }
-      
-      // Otherwise, compare directly
-      return md5Hash === hashedPassword;
-    } catch (err) {
-      console.error("Password verification error:", err);
-      return false;
-    }
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -85,10 +37,7 @@ const Auth = () => {
 
     try {
       // First try standard Supabase auth (users migrated to auth.users)
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: authData, error: authError } = await loginWithSupabaseAuth(email, password);
 
       if (!authError && authData.user) {
         // Successfully logged in with Supabase auth
@@ -96,31 +45,10 @@ const Auth = () => {
         
         // Get user role from the owc_users table via the mapping view
         try {
-          const { data: mappingData } = await supabase
-            .from('user_mapping')
-            .select('owc_user_id')
-            .eq('email', email)
-            .single();
-            
-          if (mappingData?.owc_user_id) {
-            // Now fetch the role for this user
-            const { data: userGroupData, error: userGroupError } = await supabase
-              .from('owc_user_usergroup_map')
-              .select(`
-                group_id,
-                owc_usergroups:owc_usergroups(title)
-              `)
-              .eq('user_id', mappingData.owc_user_id)
-              .single();
-              
-            if (!userGroupError && userGroupData && userGroupData.owc_usergroups) {
-              // Need to fix this TypeScript issue - correctly handle the possible data structure
-              const userGroup = userGroupData.owc_usergroups as unknown as { title?: string };
-              if (userGroup && userGroup.title) {
-                // Store the role in session storage for access in the app
-                sessionStorage.setItem('userRole', userGroup.title);
-              }
-            }
+          const userRole = await fetchUserRoleFromMapping(email);
+          if (userRole) {
+            // Store the role in session storage for access in the app
+            sessionStorage.setItem('userRole', userRole);
           }
         } catch (roleError) {
           console.error("Error fetching user role:", roleError);
@@ -137,111 +65,83 @@ const Auth = () => {
       
       // If Supabase auth failed, try the owc_users table as fallback
       console.log("Supabase auth failed, trying owc_users table");
-      
-      // Try to find the user in the owc_users table
-      const { data: userData, error: userError } = await supabase
-        .from('owc_users')
-        .select('*')
-        .eq('email', email)
-        .single();
-
-      if (userError) {
-        console.error("User lookup error:", userError);
-        throw new Error('Invalid email or password');
-      }
-
-      if (!userData) {
-        throw new Error('User not found');
-      }
-
-      // Cast userData to our defined type
-      const owcUser = userData as any; // Using any to avoid more TypeScript issues
-      console.log("Found user in owc_users table:", owcUser.id);
-
-      // Use MD5 verification for Joomla password format
-      const passwordValid = verifyJoomlaPassword(password, owcUser.password);
-      
-      if (!passwordValid) {
-        console.error("Password verification failed");
-        throw new Error('Invalid password');
-      }
-
-      console.log("Password verification successful");
-
-      try {
-        // Fetch the user's role (usergroup) from the mapping table
-        const { data: userGroupData, error: userGroupError } = await supabase
-          .from('owc_user_usergroup_map')
-          .select(`
-            group_id,
-            owc_usergroups:owc_usergroups(title)
-          `)
-          .eq('user_id', owcUser.id)
-          .single();
-
-        if (!userGroupError && userGroupData) {
-          console.log("User group data:", userGroupData);
-          // Add the user's role to the user data if it exists
-          // Correctly handle the nested object structure
-          const userGroup = userGroupData.owc_usergroups as unknown as { title?: string };
-          if (userGroup && userGroup.title) {
-            owcUser.role = userGroup.title;
-          }
-        } else {
-          console.error("Error fetching user role:", userGroupError);
-        }
-      } catch (roleError) {
-        console.error("Error processing user role:", roleError);
-        // Continue with login even if role fetch fails
-      }
-
-      // If authentication with owc_users is successful
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${owcUser.name || 'User'}!`,
-      });
-      
-      // Since we're not using Supabase Auth for this user, we need to handle session manually
-      sessionStorage.setItem('owc_user', JSON.stringify(owcUser));
-      navigate("/dashboard");
-      return;
+      await handleLegacyLogin();
     } catch (error) {
-      console.error("Login error:", error);
-      let errorMessage = "An error occurred. Please try again.";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      setError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: errorMessage,
-      });
+      handleLoginError(error);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleLegacyLogin = async () => {
+    // Try to find the user in the owc_users table
+    const { data: userData, error: userError } = await fetchOwcUser(email);
+
+    if (userError) {
+      console.error("User lookup error:", userError);
+      throw new Error('Invalid email or password');
+    }
+
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    // Cast userData to our defined type
+    const owcUser = userData as any; // Using any to avoid more TypeScript issues
+    console.log("Found user in owc_users table:", owcUser.id);
+
+    // Use MD5 verification for Joomla password format
+    const passwordValid = verifyJoomlaPassword(password, owcUser.password);
+    
+    if (!passwordValid) {
+      console.error("Password verification failed");
+      throw new Error('Invalid password');
+    }
+
+    console.log("Password verification successful");
+
+    try {
+      // Fetch the user's role
+      const userRole = await fetchOwcUserRole(owcUser.id);
+      if (userRole) {
+        owcUser.role = userRole;
+      }
+    } catch (roleError) {
+      console.error("Error processing user role:", roleError);
+      // Continue with login even if role fetch fails
+    }
+
+    // If authentication with owc_users is successful
+    toast({
+      title: "Login successful",
+      description: `Welcome back, ${owcUser.name || 'User'}!`,
+    });
+    
+    // Since we're not using Supabase Auth for this user, we need to handle session manually
+    sessionStorage.setItem('owc_user', JSON.stringify(owcUser));
+    navigate("/dashboard");
+  };
+
+  const handleLoginError = (error: any) => {
+    console.error("Login error:", error);
+    let errorMessage = "An error occurred. Please try again.";
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
+    setError(errorMessage);
+    toast({
+      variant: "destructive",
+      title: "Login failed",
+      description: errorMessage,
+    });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#8B2303] bg-opacity-90 p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <img
-            src="/lovable-uploads/e926ba6c-9a52-4f9e-aaf0-a97f1feea9e5.png"
-            alt="Papua New Guinea Emblem"
-            className="mx-auto mb-4 w-32 h-32 object-contain"
-            onError={(e) => {
-              console.error("Image failed to load");
-              const target = e.target as HTMLImageElement;
-              target.style.display = "none";
-            }}
-          />
-          <h1 className="text-2xl font-bold text-white">OFFICE OF WORKERS COMPENSATION</h1>
-          <h2 className="text-xl text-white">CLAIMS PROCESSING AND PAYMENT SYSTEM</h2>
-        </div>
-
+        <AuthHeader />
         <Card>
           <CardHeader>
             <CardTitle className="text-center">Login</CardTitle>
@@ -249,42 +149,17 @@ const Auth = () => {
               Enter your credentials to access the system
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4">
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                  {error}
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full bg-[#8B2303] hover:bg-[#6e1c02]" disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
-              </Button>
-            </CardFooter>
-          </form>
+          <CardContent>
+            <LoginForm
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              handleLogin={handleLogin}
+              loading={loading}
+              error={error}
+            />
+          </CardContent>
         </Card>
       </div>
     </div>
