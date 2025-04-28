@@ -51,8 +51,8 @@ const Navbar: React.FC<NavbarProps> = ({ userRole, onLogout }) => {
           <div className="flex items-center space-x-4">
             <Link to="/" className="flex items-center space-x-2">
               <img 
-                src="/lovable-uploads/35515f7c-2d42-4daa-a0c4-828f51baeb92.png" 
-                alt="PNG Logo" 
+                src="/lovable-uploads/e926ba6c-9a52-4f9e-aaf0-a97f1feea9e5.png" 
+                alt="Papua New Guinea Emblem" 
                 className="h-10 w-10 object-contain"
               />
               <div className="hidden md:block">
