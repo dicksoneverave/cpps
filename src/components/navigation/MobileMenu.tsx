@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { LogIn, HelpCircle, ClipboardList, LogOut } from "lucide-react";
+import { LogIn, HelpCircle, ClipboardList, LogOut, Settings } from "lucide-react";
 
 interface MobileMenuProps {
   isMenuOpen: boolean;
@@ -20,6 +20,8 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
 }) => {
   if (!isMenuOpen) return null;
   
+  const isAdmin = userRole?.toLowerCase().includes('admin');
+  
   return (
     <nav className="md:hidden mt-4 pb-4">
       <ul className="space-y-2">
@@ -31,20 +33,30 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </Link>
           </li>
         ) : (
-          <li>
-            <button 
-              onClick={() => {
-                if (onLogout) {
-                  onLogout();
-                }
-                toggleMenu();
-              }} 
-              className="flex items-center p-2 w-full text-left hover:bg-white/10 rounded text-red-400"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              LOGOUT
-            </button>
-          </li>
+          <>
+            {isAdmin && (
+              <li>
+                <Link to="/admin" className="flex items-center p-2 hover:bg-white/10 rounded" onClick={toggleMenu}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  ADMIN
+                </Link>
+              </li>
+            )}
+            <li>
+              <button 
+                onClick={() => {
+                  if (onLogout) {
+                    onLogout();
+                  }
+                  toggleMenu();
+                }} 
+                className="flex items-center p-2 w-full text-left hover:bg-white/10 rounded text-red-400"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                LOGOUT
+              </button>
+            </li>
+          </>
         )}
         <li>
           <Link to="/help" className="flex items-center p-2 hover:bg-white/10 rounded" onClick={toggleMenu}>

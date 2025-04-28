@@ -1,29 +1,8 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { 
-  LogIn, 
-  HelpCircle,
-  ClipboardList,
-  User,
-  LogOut
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { HelpCircle, ClipboardList, User, LogOut } from "lucide-react";
 
 interface DesktopMenuProps {
   isAuthenticated: boolean;
@@ -32,80 +11,56 @@ interface DesktopMenuProps {
 }
 
 const DesktopMenu: React.FC<DesktopMenuProps> = ({ isAuthenticated, userRole, onLogout }) => {
+  const isAdmin = userRole?.toLowerCase().includes('admin');
+
   return (
-    <div className="hidden md:flex space-x-1 items-center">
-      <NavigationMenu>
-        <NavigationMenuList>
-          {!isAuthenticated ? (
-            <NavigationMenuItem>
-              <Link to="/login">
-                <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-white/10")}>
-                  <LogIn className="w-4 h-4 mr-2" />
-                  LOGIN
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-          ) : (
-            <NavigationMenuItem>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onLogout} 
-                className="bg-transparent border border-white text-white hover:bg-white/20"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                LOGOUT
-              </Button>
-            </NavigationMenuItem>
+    <nav className="hidden md:flex space-x-1">
+      {!isAuthenticated ? (
+        <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" asChild>
+          <Link to="/login">LOGIN</Link>
+        </Button>
+      ) : (
+        <>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" asChild>
+              <Link to="/admin">ADMIN</Link>
+            </Button>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-white/10"
+            onClick={onLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            LOGOUT
+          </Button>
+        </>
+      )}
 
-          <NavigationMenuItem>
-            <Link to="/help">
-              <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-white/10")}>
-                <HelpCircle className="w-4 h-4 mr-2" />
-                HELP
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
+      <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" asChild>
+        <Link to="/help">
+          <HelpCircle className="h-4 w-4 mr-2" />
+          HELP
+        </Link>
+      </Button>
 
-          <NavigationMenuItem>
-            <Link to="/pending-list">
-              <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-white/10")}>
-                <ClipboardList className="w-4 h-4 mr-2" />
-                PENDING LIST
-              </NavigationMenuLink>
-            </Link>
-          </NavigationMenuItem>
+      <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" asChild>
+        <Link to="/pending-list">
+          <ClipboardList className="h-4 w-4 mr-2" />
+          PENDING LIST
+        </Link>
+      </Button>
 
-          {isAuthenticated && userRole && (
-            <NavigationMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="hover:bg-white/10">
-                    <User className="w-4 h-4 mr-2" />
-                    Account
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem disabled>
-                    Role: {userRole}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile">My Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout} className="text-red-600">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </NavigationMenuItem>
-          )}
-        </NavigationMenuList>
-      </NavigationMenu>
-    </div>
+      {isAuthenticated && (
+        <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" asChild>
+          <Link to="/dashboard">
+            <User className="h-4 w-4 mr-2" />
+            ACCOUNT
+          </Link>
+        </Button>
+      )}
+    </nav>
   );
 };
 
