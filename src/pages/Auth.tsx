@@ -12,6 +12,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -29,20 +30,47 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // First try standard Supabase auth
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
+      if (authError) {
+        // If standard auth fails, try to find the user in the owc_users table
+        const { data: userData, error: userError } = await supabase
+          .from('owc_users')
+          .select('*')
+          .eq('email', email)
+          .single();
+
+        if (userError || !userData) {
+          throw new Error('Invalid email or password');
+        }
+
+        // Check password - Note: This is a simplified example
+        // In production, you should use proper password hashing
+        if (userData.password !== password) {
+          throw new Error('Invalid email or password');
+        }
+
+        // If authentication with owc_users is successful
         toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: error.message,
+          title: "Login successful",
+          description: `Welcome back, ${userData.name}!`,
         });
-      } else if (data.user) {
+        
+        // Since we're not using Supabase Auth for this user, we need to handle session manually
+        // This is a simplified approach - in a real app, you would need proper JWT tokens
+        sessionStorage.setItem('owc_user', JSON.stringify(userData));
+        navigate("/dashboard");
+        return;
+      }
+
+      if (data.user) {
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -51,10 +79,17 @@ const Auth = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
+      let errorMessage = "An error occurred. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
       toast({
         variant: "destructive",
-        title: "An error occurred",
-        description: "Please try again later",
+        title: "Login failed",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -88,6 +123,11 @@ const Auth = () => {
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
