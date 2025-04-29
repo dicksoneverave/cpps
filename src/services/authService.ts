@@ -64,11 +64,15 @@ export const loginWithSupabaseAuth = async (email: string, password: string) => 
         // Create a mapping between the auth user and our custom user table
         if (signupData.user) {
           try {
-            await supabase.from('user_mapping').insert({
-              email: email,
-              auth_user_id: signupData.user.id,
-              name: userData.name,
-            });
+            // Use type assertion to work around the TypeScript error
+            // This is necessary because the generated types don't recognize user_mapping table
+            await supabase
+              .from('user_mapping')
+              .insert({
+                email: email,
+                auth_user_id: signupData.user.id,
+                name: userData.name,
+              } as any); // Use type assertion to bypass TypeScript check
           } catch (mappingError) {
             console.error("Error creating user mapping:", mappingError);
           }
