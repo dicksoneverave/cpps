@@ -15,9 +15,9 @@ export const searchUsersByEmail = async (searchQuery: string): Promise<UserData[
       throw new Error("Invalid auth data structure");
     }
     
-    // Filter users by email
+    // Filter users by email if searchQuery is provided, otherwise return all
     const matchedUsers: UserData[] = authData.users
-      .filter((user: User) => user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((user: User) => !searchQuery || (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())))
       .map((user: User) => ({
         id: user.id,
         email: user.email || '',

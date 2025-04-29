@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminUserGroups from "@/components/admin/AdminUserGroups";
 import AssignAdministratorButton from "@/components/admin/AssignAdministratorButton";
+import GroupAssignmentForm from "@/components/admin/GroupAssignmentForm";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -84,13 +85,13 @@ const AdminDashboardPage: React.FC = () => {
           <TabsContent value="forms">
             <Card>
               <CardHeader>
-                <CardTitle>Form Management</CardTitle>
+                <CardTitle>Group Assignment Form</CardTitle>
                 <CardDescription>
-                  Manage system forms and their assignments
+                  Easily add or remove users from groups using this form
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p>Form management functionality will be implemented here.</p>
+                <GroupAssignmentForm />
               </CardContent>
             </Card>
           </TabsContent>
