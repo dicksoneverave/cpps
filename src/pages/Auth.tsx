@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/components/ui/use-toast";
 import LoginForm from "@/components/auth/LoginForm";
 import AuthHeader from "@/components/auth/AuthHeader";
-import { loginWithSupabaseAuth, fetchUserRoleFromMapping } from "@/services/auth";
+import { loginWithSupabaseAuth } from "@/services/auth";
 import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
@@ -26,18 +26,6 @@ const Auth = () => {
         if (userEmail === "administrator@gmail.com") {
           navigate("/admin");
           return;
-        }
-        
-        if (userEmail) {
-          try {
-            const userRole = await fetchUserRoleFromMapping(userEmail);
-            if (userRole === "OWC Admin" || userRole === "owcadmin") {
-              navigate("/admin");
-              return;
-            }
-          } catch (error) {
-            console.error("Error checking user role:", error);
-          }
         }
         navigate("/dashboard");
       }
@@ -61,37 +49,13 @@ const Auth = () => {
         console.log("Login successful for:", userData?.email || userData?.name);
         
         // Check for administrator email
-        if (email === "administrator@gmail.com" || (userData?.email === "administrator@gmail.com")) {
+        if (email === "administrator@gmail.com") {
           toast({
             title: "Login successful",
             description: "Welcome back, Administrator!",
           });
           navigate("/admin");
           return;
-        }
-        
-        // For other users, get role from the mapping
-        try {
-          const userRole = await fetchUserRoleFromMapping(email);
-          console.log("User role:", userRole);
-          
-          if (userRole) {
-            // Store the role in session storage for access in the app
-            sessionStorage.setItem('userRole', userRole);
-            
-            // Redirect based on role
-            if (userRole === "OWC Admin" || userRole === "owcadmin") {
-              toast({
-                title: "Login successful",
-                description: "Welcome back, Administrator!",
-              });
-              navigate("/admin");
-              return;
-            }
-          }
-        } catch (roleError) {
-          console.error("Error fetching user role:", roleError);
-          // Continue with login even if role fetch fails
         }
         
         toast({
