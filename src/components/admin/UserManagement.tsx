@@ -15,19 +15,22 @@ import {
   DialogTitle,
   DialogFooter
 } from "@/components/ui/dialog";
-import { UserPlus, Trash2 } from "lucide-react";
+import { UserPlus, Trash2, Key } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
+import MD5 from 'crypto-js/md5';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [newUserData, setNewUserData] = useState({
     name: "",
     email: "",
-    password: ""
+    password: "dixman007" // Default password
   });
+  const [newPassword, setNewPassword] = useState("");
   const { toast } = useToast();
 
   // Fetch users on component mount
@@ -38,20 +41,20 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Instead of using admin API, let's query the user_mapping table
-      // which we have read access to from the client
+      // Query our custom users table
       const { data, error } = await supabase
-        .from('user_mapping')
-        .select('auth_user_id, email, name');
+        .from('users')
+        .select('*');
       
       if (error) throw error;
 
       // Transform the data into our UserData format
       if (data) {
         const formattedUsers: UserData[] = data.map(user => ({
-          id: user.auth_user_id || "",
-          email: user.email || "Unknown email",
-          name: user.name || user.email?.split("@")[0] || "Unknown name"
+          id: user.id,
+          email: user.email,
+          name: user.name || user.email?.split("@")[0] || "Unknown name",
+          password: user.password
         }));
         setUsers(formattedUsers);
       }
@@ -84,40 +87,28 @@ const UserManagement: React.FC = () => {
         return;
       }
 
-      // Create user in Supabase auth
-      const { data, error } = await supabase.auth.signUp({
-        email: newUserData.email,
-        password: newUserData.password,
-        options: {
-          data: { name: newUserData.name }
-        }
-      });
+      // Hash the password (using MD5 as mentioned in the passwordUtils.ts)
+      const hashedPassword = MD5(newUserData.password).toString();
+
+      // Insert directly into our users table
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          email: newUserData.email,
+          name: newUserData.name || newUserData.email.split("@")[0],
+          password: hashedPassword
+        })
+        .select();
 
       if (error) throw error;
 
-      // Also add the user to our user_mapping table for client-side listing
-      if (data.user) {
-        const { error: mappingError } = await supabase
-          .from('user_mapping')
-          .insert({
-            auth_user_id: data.user.id,
-            email: newUserData.email,
-            name: newUserData.name || newUserData.email.split("@")[0]
-          });
-
-        if (mappingError) {
-          console.error("Error adding user to mapping:", mappingError);
-          // Continue anyway as the auth user is created
-        }
-      }
-
       sonnerToast.success("User created successfully", {
-        description: `User ${newUserData.email} has been added. They will need to confirm their email before logging in.`,
+        description: `User ${newUserData.email} has been added with default password.`,
         duration: 5000,
       });
 
       // Reset form and close dialog
-      setNewUserData({ name: "", email: "", password: "" });
+      setNewUserData({ name: "", email: "", password: "dixman007" });
       setAddDialogOpen(false);
 
       // Refresh user list
@@ -132,20 +123,58 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    try {
+      // Hash the new password
+      const hashedPassword = MD5(newPassword).toString();
+
+      // Update the user's password
+      const { error } = await supabase
+        .from('users')
+        .update({ password: hashedPassword, updated_at: new Date().toISOString() })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      sonnerToast.success("Password reset successfully", {
+        description: `Password for ${selectedUser.email} has been updated.`,
+      });
+
+      // Reset state and close dialog
+      setNewPassword("");
+      setResetPasswordDialogOpen(false);
+      
+      // Update local data
+      setUsers(users.map(user => 
+        user.id === selectedUser.id 
+          ? { ...user, password: hashedPassword } 
+          : user
+      ));
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to reset password",
+        description: error.message || "An error occurred while resetting the password.",
+      });
+    }
+  };
+
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
 
     try {
-      // For deletion, we'll need to use a Supabase Edge Function or server endpoint
-      // that has admin privileges. For now, we'll just remove from our mapping table.
-      const { error: mappingError } = await supabase
-        .from('user_mapping')
+      // Delete directly from our users table
+      const { error } = await supabase
+        .from('users')
         .delete()
-        .eq('auth_user_id', selectedUser.id);
+        .eq('id', selectedUser.id);
 
-      if (mappingError) throw mappingError;
+      if (error) throw error;
 
-      // Note: the actual auth.users record will remain, but won't show in our UI
       sonnerToast.success("User removed from system", {
         description: `User ${selectedUser.email} has been removed from the system.`,
       });
@@ -192,8 +221,18 @@ const UserManagement: React.FC = () => {
               emptyMessage={loading ? "Loading users..." : "No users found"}
             />
             
-            {/* Delete User Button */}
-            <div className="mt-4 flex justify-end">
+            {/* Action Buttons */}
+            <div className="mt-4 flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                disabled={!selectedUser}
+                onClick={() => setResetPasswordDialogOpen(true)}
+                className="flex items-center gap-1"
+              >
+                <Key className="w-4 h-4" />
+                <span>Reset Password</span>
+              </Button>
+
               <Button
                 variant="destructive"
                 disabled={!selectedUser}
@@ -275,11 +314,11 @@ const UserManagement: React.FC = () => {
                   id="password"
                   name="password"
                   type="password"
-                  placeholder="********"
-                  required
+                  placeholder="Default: dixman007"
                   value={newUserData.password}
                   onChange={handleInputChange}
                 />
+                <p className="text-xs text-gray-500">Default password: dixman007</p>
               </div>
             </div>
             <DialogFooter>
@@ -287,6 +326,44 @@ const UserManagement: React.FC = () => {
                 Cancel
               </Button>
               <Button type="submit">Add User</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="userEmail">User</Label>
+                <Input
+                  id="userEmail"
+                  value={selectedUser?.email || ""}
+                  disabled
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="New password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Reset Password</Button>
             </DialogFooter>
           </form>
         </DialogContent>

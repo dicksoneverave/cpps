@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import MD5 from 'crypto-js/md5';
 
 // Define interfaces for our query results
 export interface UserGroupData {
@@ -11,15 +12,47 @@ export interface UserGroupData {
 
 export const loginWithSupabaseAuth = async (email: string, password: string) => {
   try {
+    // Check with our custom users table first
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+      
+    if (userError) {
+      throw new Error("Invalid email or password. Please try again.");
+    }
+    
+    // Hash the password for comparison
+    const hashedPassword = MD5(password).toString();
+    
+    // Check if password matches
+    if (userData.password !== hashedPassword) {
+      throw new Error("Invalid email or password. Please try again.");
+    }
+    
+    // If the user exists and password is correct, sign in with Supabase Auth
     const response = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    // Check for errors in the response
+    // If there's an auth error but our password check passed,
+    // we'll sign up the user in Supabase Auth (migration scenario)
     if (response.error) {
       if (response.error.message.includes("Invalid login credentials")) {
-        throw new Error("Invalid email or password. Please try again.");
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: userData.name }
+          }
+        });
+        
+        if (signupError) throw signupError;
+        
+        // Return the signup data instead
+        return { data: signupData, error: null };
       } else {
         throw new Error(response.error.message);
       }

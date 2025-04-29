@@ -11,6 +11,7 @@ export interface UserData {
   id: string;
   email: string | null;
   name?: string;
+  password?: string;
   group_id?: number;
   group_title?: string;
   owc_user_id?: number;
@@ -27,6 +28,32 @@ export type UserMappingInsert = {
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          name: string | null;
+          password: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          name?: string | null;
+          password: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          name?: string | null;
+          password?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       user_mapping: {
         Row: {
           auth_user_id: string;
