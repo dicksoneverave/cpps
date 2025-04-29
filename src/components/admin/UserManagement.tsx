@@ -25,6 +25,8 @@ const UserManagement: React.FC = () => {
   
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 12;
 
   // Fetch users on component mount
   useEffect(() => {
@@ -39,6 +41,12 @@ const UserManagement: React.FC = () => {
     if (!selectedUser) return;
     await deleteUser(selectedUser.id);
   };
+
+  // Calculate the current page's users
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(users.length / usersPerPage);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -58,10 +66,14 @@ const UserManagement: React.FC = () => {
           <CardContent className="pb-6">
             <UserList
               title="Registered Users"
-              users={users}
+              users={currentUsers}
               selectedUser={selectedUser}
               onSelectUser={handleSelectUser}
               emptyMessage={loading ? "Loading users..." : "No users found"}
+              totalUsers={users.length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
             />
             
             {/* Action Buttons - now extracted to a separate component */}
