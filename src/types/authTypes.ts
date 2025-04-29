@@ -9,3 +9,13 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   isAdmin: boolean;
 }
+
+export interface UserRoleFetchOptions {
+  userId?: string;
+  email?: string;
+}
+
+export interface UserRoleState {
+  userRole: string | null;
+  isAdmin: boolean;
+}

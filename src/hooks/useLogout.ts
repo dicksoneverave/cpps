@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 export const useLogout = () => {
   const { toast } = useToast();
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       sessionStorage.removeItem('userRole');
       
@@ -17,8 +17,6 @@ export const useLogout = () => {
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
-      
-      return true;
     } catch (error) {
       console.error("Error during logout:", error);
       toast({
@@ -26,8 +24,6 @@ export const useLogout = () => {
         title: "Logout failed",
         description: "There was an error logging out. Please try again.",
       });
-      
-      return false;
     }
   }, [toast]);
 
