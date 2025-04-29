@@ -2,6 +2,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { UserData, UserMappingInsert } from "@/types/adminTypes";
 
+// Type for the user_mapping table
+type UserMapping = {
+  auth_user_id: string;
+  owc_user_id: number;
+  name: string;
+  email: string | null;
+};
+
 // Assign user to group
 export const assignUserToGroup = async (
   selectedUser: UserData, 
@@ -68,7 +76,7 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   }
   
   // Create mapping
-  const mappingData: UserMappingInsert = {
+  const mappingData: UserMapping = {
     auth_user_id: selectedUser.id,
     owc_user_id: owcUserId,
     name: selectedUser.name || selectedUser.email.split('@')[0],
@@ -77,7 +85,7 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   
   const { error: newMappingError } = await supabase
     .from('user_mapping')
-    .insert([mappingData]); // Fix: Insert expects an array
+    .insert([mappingData]);
     
   if (newMappingError) throw newMappingError;
   

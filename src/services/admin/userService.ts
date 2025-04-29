@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { UserData } from "@/types/adminTypes";
+import { User } from "@supabase/supabase-js";
 
 // Search for users by email
 export const searchUsersByEmail = async (searchQuery: string): Promise<UserData[]> => {
@@ -16,8 +17,8 @@ export const searchUsersByEmail = async (searchQuery: string): Promise<UserData[
     
     // Filter users by email
     const matchedUsers: UserData[] = authData.users
-      .filter(user => user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-      .map(user => ({
+      .filter((user: User) => user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      .map((user: User) => ({
         id: user.id,
         email: user.email || '',
         name: user.user_metadata?.name || 'Unknown'
