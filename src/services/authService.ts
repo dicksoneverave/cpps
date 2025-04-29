@@ -39,6 +39,8 @@ export const loginWithSupabaseAuth = async (email: string, password: string) => 
       
       // For users table, verify with MD5
       const hashedPassword = MD5(password).toString();
+      console.log("Users table - email:", email);
+      console.log("Users table - comparing:", hashedPassword, "with", userData.password);
       
       if (userData?.password !== hashedPassword) {
         throw new Error("Invalid email or password. Please try again.");
@@ -53,6 +55,9 @@ export const loginWithSupabaseAuth = async (email: string, password: string) => 
     }
     
     // Verify password against owc_users table
+    console.log("OWC table - email:", email);
+    console.log("OWC table - password hash from DB:", owcUserData.password);
+    
     // Joomla passwords could be in different formats, use the utility function
     const isPasswordValid = verifyJoomlaPassword(password, owcUserData.password);
     

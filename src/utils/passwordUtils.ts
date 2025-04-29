@@ -14,6 +14,9 @@ export const verifyJoomlaPassword = (plainPassword: string, hashedPassword: stri
     
     // Create MD5 hash of the plain password
     const md5Hash = MD5(plainPassword).toString();
+    console.log("Plain password:", plainPassword);
+    console.log("Generated MD5:", md5Hash);
+    console.log("Stored hash:", hashedPassword);
     
     // Compare the hashes - Joomla sometimes prefixes the hash
     // If the hash contains a colon, it's using a format like "md5:hash"
@@ -24,7 +27,7 @@ export const verifyJoomlaPassword = (plainPassword: string, hashedPassword: stri
       }
     }
     
-    // Otherwise, compare directly
+    // Direct comparison for plain MD5 hash (most likely case for this user)
     return md5Hash === hashedPassword;
   } catch (err) {
     console.error("Password verification error:", err);
