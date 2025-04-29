@@ -5,11 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminUserGroups from "@/components/admin/AdminUserGroups";
+import AssignAdministratorButton from "@/components/admin/AssignAdministratorButton";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 
 const AdminDashboardPage: React.FC = () => {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -19,8 +20,8 @@ const AdminDashboardPage: React.FC = () => {
       return;
     }
 
-    // Admin role check - modify this based on your roles structure
-    if (!loading && user && userRole !== "OWC Admin" && userRole !== "owcadmin") {
+    // Admin role check
+    if (!loading && user && !isAdmin) {
       toast({
         title: "Access Restricted",
         description: "You do not have permission to access the admin dashboard.",
@@ -28,7 +29,7 @@ const AdminDashboardPage: React.FC = () => {
       });
       navigate("/dashboard");
     }
-  }, [user, userRole, loading, navigate, toast]);
+  }, [user, userRole, loading, navigate, toast, isAdmin]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -40,6 +41,9 @@ const AdminDashboardPage: React.FC = () => {
       
       <div className="flex-1 container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-6 mt-4">Admin Dashboard</h1>
+
+        {/* Admin assignment button */}
+        <AssignAdministratorButton />
 
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="mb-8 grid w-full grid-cols-2 lg:grid-cols-4">

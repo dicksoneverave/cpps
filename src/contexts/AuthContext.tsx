@@ -11,6 +11,7 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   logout: () => Promise<void>;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }, 0);
         } else {
           setUserRole(null);
+          setIsAdmin(false);
           sessionStorage.removeItem('userRole');
         }
       }
@@ -75,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const storedRole = sessionStorage.getItem('userRole');
       if (storedRole) {
         setUserRole(storedRole);
+        setIsAdmin(storedRole === "OWC Admin" || storedRole === "owcadmin");
         return;
       }
       
@@ -100,8 +104,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (userGroupData?.owc_usergroups) {
             const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
             if (groupData?.title) {
-              setUserRole(groupData.title);
-              sessionStorage.setItem('userRole', groupData.title);
+              const role = groupData.title;
+              setUserRole(role);
+              setIsAdmin(role === "OWC Admin" || role === "owcadmin");
+              sessionStorage.setItem('userRole', role);
               return;
             }
           }
@@ -132,8 +138,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (userGroupData?.owc_usergroups) {
             const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
             if (groupData?.title) {
-              setUserRole(groupData.title);
-              sessionStorage.setItem('userRole', groupData.title);
+              const role = groupData.title;
+              setUserRole(role);
+              setIsAdmin(role === "OWC Admin" || role === "owcadmin");
+              sessionStorage.setItem('userRole', role);
               return;
             }
           }
@@ -146,12 +154,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Last resort, use generic role lookup
       const role = await getUserRole(userId);
       setUserRole(role);
+      setIsAdmin(role === "OWC Admin" || role === "owcadmin");
       if (role) {
         sessionStorage.setItem('userRole', role);
       }
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
       setUserRole("User"); // Default role if all else fails
+      setIsAdmin(false);
     }
   };
 
@@ -164,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSession(null);
       setUser(null);
       setUserRole(null);
+      setIsAdmin(false);
       
       toast({
         title: "Logged out successfully",
@@ -185,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     userRole,
     loading,
     logout,
+    isAdmin,
   };
 
   return (

@@ -21,6 +21,19 @@ const Auth = () => {
       const { data } = await supabase.auth.getSession();
       
       if (data.session) {
+        // Check if the user is an admin
+        const userEmail = data.session.user.email;
+        if (userEmail) {
+          try {
+            const userRole = await fetchUserRoleFromMapping(userEmail);
+            if (userRole === "OWC Admin" || userRole === "owcadmin") {
+              navigate("/admin");
+              return;
+            }
+          } catch (error) {
+            console.error("Error checking user role:", error);
+          }
+        }
         navigate("/dashboard");
       }
     };
@@ -45,6 +58,16 @@ const Auth = () => {
           if (userRole) {
             // Store the role in session storage for access in the app
             sessionStorage.setItem('userRole', userRole);
+            
+            // Redirect based on role
+            if (userRole === "OWC Admin" || userRole === "owcadmin") {
+              toast({
+                title: "Login successful",
+                description: "Welcome back, Administrator!",
+              });
+              navigate("/admin");
+              return;
+            }
           }
         } catch (roleError) {
           console.error("Error fetching user role:", roleError);
