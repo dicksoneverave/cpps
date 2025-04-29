@@ -1,12 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import LoginForm from "@/components/auth/LoginForm";
 import AuthHeader from "@/components/auth/AuthHeader";
-import { loginWithSupabaseAuth } from "@/services/authService";
-import { fetchUserRoleFromMapping } from "@/services/authService";
+import { loginWithSupabaseAuth, fetchUserRoleFromMapping } from "@/services/auth";
 import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
