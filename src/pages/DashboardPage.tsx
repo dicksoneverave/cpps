@@ -6,7 +6,7 @@ import Dashboard from "@/components/Dashboard";
 import Navbar from "@/components/Navbar";
 
 const DashboardPage: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, userRole } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,7 +33,7 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
       <div className="flex-1 container mx-auto p-4">
-        <Dashboard />
+        <Dashboard userRole={userRole || ""} />
       </div>
     </div>
   );

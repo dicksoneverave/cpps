@@ -46,20 +46,22 @@ const AdminDashboardPage: React.FC = () => {
         {/* Admin assignment button */}
         <AssignAdministratorButton />
 
-        <Tabs defaultValue="forms" className="w-full">
-          <TabsList className="mb-8 grid w-full grid-cols-2 lg:grid-cols-4">
-            <TabsTrigger value="forms">Form Management</TabsTrigger>
+        <Tabs defaultValue="group-assignment" className="w-full">
+          <TabsList className="mb-8 grid w-full grid-cols-2 lg:grid-cols-5">
+            <TabsTrigger value="group-assignment">Group Assignment</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="groups">Group Management</TabsTrigger>
+            <TabsTrigger value="forms">Form Management</TabsTrigger>
             <TabsTrigger value="settings">System Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="forms" className="space-y-4">
+          {/* New dedicated Group Assignment tab */}
+          <TabsContent value="group-assignment" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Group Assignment Form</CardTitle>
+                <CardTitle>User Group Assignment</CardTitle>
                 <CardDescription>
-                  Easily add or remove users from groups using this form
+                  Assign users to groups to control their access levels and dashboard views
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -68,12 +70,26 @@ const AdminDashboardPage: React.FC = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="forms" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Form Management</CardTitle>
+                <CardDescription>
+                  Manage and configure system forms
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Form management functionality will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>User Group Assignment</CardTitle>
+                <CardTitle>User Management</CardTitle>
                 <CardDescription>
-                  Assign users to groups to control their access levels and dashboard views
+                  Add, edit, or remove users from the system
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -87,7 +103,7 @@ const AdminDashboardPage: React.FC = () => {
               <CardHeader>
                 <CardTitle>Group Management</CardTitle>
                 <CardDescription>
-                  Manage user groups and their permissions
+                  Create, edit, or remove user groups and their permissions
                 </CardDescription>
               </CardHeader>
               <CardContent>
