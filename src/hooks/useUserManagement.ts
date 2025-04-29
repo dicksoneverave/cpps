@@ -15,10 +15,11 @@ export const useUserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Using a generic query approach to avoid type issues
+      // Using a raw query approach with proper type casting
       const { data, error } = await supabase
         .from('users')
-        .select('*');
+        .select('*')
+        .returns<any[]>();
       
       if (error) throw error;
 
@@ -56,7 +57,7 @@ export const useUserManagement = () => {
 
       const hashedPassword = MD5(userData.password).toString();
 
-      // Using a generic approach to avoid type issues
+      // Using a raw query approach with proper types
       const { data, error } = await supabase
         .from('users')
         .insert([{
@@ -64,7 +65,8 @@ export const useUserManagement = () => {
           name: userData.name || userData.email.split("@")[0],
           password: hashedPassword
         }])
-        .select();
+        .select()
+        .returns<any[]>();
 
       if (error) throw error;
 
@@ -90,7 +92,7 @@ export const useUserManagement = () => {
     try {
       const hashedPassword = MD5(newPassword).toString();
 
-      // Using a generic approach to avoid type issues
+      // Using a raw query approach with proper types
       const { error } = await supabase
         .from('users')
         .update({ 
@@ -126,7 +128,7 @@ export const useUserManagement = () => {
 
   const deleteUser = async (userId: string) => {
     try {
-      // Using a generic approach to avoid type issues
+      // Using a raw query approach with proper types
       const { error } = await supabase
         .from('users')
         .delete()
