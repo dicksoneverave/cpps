@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import MD5 from 'crypto-js/md5';
 
@@ -17,7 +16,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string) => 
       .from('users')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
       
     if (userError) {
       throw new Error("Invalid email or password. Please try again.");
@@ -27,7 +26,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string) => 
     const hashedPassword = MD5(password).toString();
     
     // Check if password matches
-    if (userData.password !== hashedPassword) {
+    if (userData?.password !== hashedPassword) {
       throw new Error("Invalid email or password. Please try again.");
     }
     
@@ -45,7 +44,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string) => 
           email,
           password,
           options: {
-            data: { name: userData.name }
+            data: { name: userData?.name }
           }
         });
         

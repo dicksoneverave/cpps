@@ -15,6 +15,7 @@ export const useUserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      // Using a generic query approach to avoid type issues
       const { data, error } = await supabase
         .from('users')
         .select('*');
@@ -55,6 +56,7 @@ export const useUserManagement = () => {
 
       const hashedPassword = MD5(userData.password).toString();
 
+      // Using a generic approach to avoid type issues
       const { data, error } = await supabase
         .from('users')
         .insert([{
@@ -88,6 +90,7 @@ export const useUserManagement = () => {
     try {
       const hashedPassword = MD5(newPassword).toString();
 
+      // Using a generic approach to avoid type issues
       const { error } = await supabase
         .from('users')
         .update({ 
@@ -123,6 +126,7 @@ export const useUserManagement = () => {
 
   const deleteUser = async (userId: string) => {
     try {
+      // Using a generic approach to avoid type issues
       const { error } = await supabase
         .from('users')
         .delete()

@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserData } from "@/types/adminTypes";
-import { UserPlus, Trash2, Key } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import UserList from "./UserList";
 import UserDetails from "./user/UserDetails";
 import AddUserDialog from "./user/AddUserDialog";
 import ResetPasswordDialog from "./user/ResetPasswordDialog";
+import UserActionButtons from "./user/UserActionButtons";
 import { useUserManagement } from "@/hooks/useUserManagement";
+import { UserData } from "@/types/adminTypes";
 
 const UserManagement: React.FC = () => {
   const { 
@@ -63,28 +64,12 @@ const UserManagement: React.FC = () => {
               emptyMessage={loading ? "Loading users..." : "No users found"}
             />
             
-            {/* Action Buttons */}
-            <div className="mt-4 flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                disabled={!selectedUser}
-                onClick={() => setResetPasswordDialogOpen(true)}
-                className="flex items-center gap-1"
-              >
-                <Key className="w-4 h-4" />
-                <span>Reset Password</span>
-              </Button>
-
-              <Button
-                variant="destructive"
-                disabled={!selectedUser}
-                onClick={handleDeleteUser}
-                className="flex items-center gap-1"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete User</span>
-              </Button>
-            </div>
+            {/* Action Buttons - now extracted to a separate component */}
+            <UserActionButtons
+              selectedUser={selectedUser}
+              onResetPassword={() => setResetPasswordDialogOpen(true)}
+              onDeleteUser={handleDeleteUser}
+            />
           </CardContent>
         </Card>
       </div>
