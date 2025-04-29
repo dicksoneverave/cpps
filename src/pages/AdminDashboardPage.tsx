@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AdminUserGroups from "@/components/admin/AdminUserGroups";
 import AssignAdministratorButton from "@/components/admin/AssignAdministratorButton";
 import GroupAssignmentForm from "@/components/admin/GroupAssignmentForm";
+import UserManagement from "@/components/admin/UserManagement";
 import AdminDashboardCharts from "@/components/dashboards/AdminDashboardCharts";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
@@ -100,7 +101,7 @@ const AdminDashboardPage: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <AdminUserGroups />
+                <UserManagement />
               </CardContent>
             </Card>
           </TabsContent>
