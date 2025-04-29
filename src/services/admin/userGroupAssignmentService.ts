@@ -77,7 +77,7 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   
   const { error: newMappingError } = await supabase
     .from('user_mapping')
-    .insert(mappingData);
+    .insert([mappingData]); // Fix: Insert expects an array
     
   if (newMappingError) throw newMappingError;
   
@@ -107,10 +107,10 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
     // Insert new mapping
     const { error: insertError } = await supabase
       .from('owc_user_usergroup_map')
-      .insert({
+      .insert([{
         user_id: owcUserId,
         group_id: parseInt(selectedGroupId)
-      });
+      }]);
       
     if (insertError) throw insertError;
   }

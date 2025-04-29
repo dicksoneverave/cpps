@@ -7,7 +7,9 @@ import UserSearch from "./UserSearch";
 import UserSearchResults from "./UserSearchResults";
 import SelectedUser from "./SelectedUser";
 import GroupSelector from "./GroupSelector";
-import { fetchUserGroups, searchUsersByEmail, assignUserToGroup } from "@/services/adminUserService";
+import { fetchUserGroups } from "@/services/admin/groupService";
+import { searchUsersByEmail } from "@/services/admin/userService";
+import { assignUserToGroup } from "@/services/admin/userGroupAssignmentService";
 
 const AdminUserGroups: React.FC = () => {
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);

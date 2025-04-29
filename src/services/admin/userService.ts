@@ -19,7 +19,7 @@ export const searchUsersByEmail = async (searchQuery: string): Promise<UserData[
       .filter(user => user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(user => ({
         id: user.id,
-        email: user.email,
+        email: user.email || '',
         name: user.user_metadata?.name || 'Unknown'
       })) || [];
     
