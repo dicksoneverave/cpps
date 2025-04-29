@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Search, User, UserCheck, X } from "lucide-react";
+import { User as SupabaseUser } from "@supabase/supabase-js";
+import { Database } from "@/integrations/supabase/types";
 
 interface UserGroup {
   id: number;
@@ -32,6 +34,26 @@ interface UserData {
   group_title?: string;
   owc_user_id?: number;
 }
+
+// Define types for our table schemas
+type UserMappingInsert = {
+  auth_user_id: string;
+  owc_user_id: number;
+  name: string;
+  email: string | null;
+};
+
+type OWCUserInsert = {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  block: string;
+  sendEmail: string;
+  registerDate: string;
+  requireReset: string;
+  authProvider: string;
+};
 
 const AdminUserGroups: React.FC = () => {
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
@@ -79,8 +101,13 @@ const AdminUserGroups: React.FC = () => {
       
       if (authError) throw authError;
       
+      // Type guard to ensure we have the correct data structure
+      if (!authData || !authData.users || !Array.isArray(authData.users)) {
+        throw new Error("Invalid auth data structure");
+      }
+      
       // Filter users by email
-      const matchedUsers = authData?.users
+      const matchedUsers = authData.users
         .filter(user => user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
         .map(user => ({
           id: user.id,
@@ -206,36 +233,42 @@ const AdminUserGroups: React.FC = () => {
           throw new Error("Invalid email or username");
         }
         
-        // Insert into owc_users using .select() to get back the inserted ID
-        const { data: newUser, error: userError } = await supabase
-          .from('owc_users')
-          .insert({
-            name: selectedUser.name || selectedUser.email.split('@')[0],
-            username: username,
-            email: selectedUser.email,
-            password: '', // We're using SSO, so no password needed
-            block: '0',
-            sendEmail: '0',
-            registerDate: new Date().toISOString(),
-            requireReset: '0',
-            authProvider: 'supabase'
-          })
-          .select('id')
-          .single();
-          
-        if (userError) throw userError;
+        // Insert into owc_users using RPC to handle the ID generation
+        const { data: newUserData, error: rpcError } = await supabase.rpc('create_owc_user', {
+          p_name: selectedUser.name || selectedUser.email.split('@')[0],
+          p_username: username,
+          p_email: selectedUser.email,
+          p_password: '',
+          p_block: '0',
+          p_send_email: '0',
+          p_register_date: new Date().toISOString(),
+          p_require_reset: '0',
+          p_auth_provider: 'supabase'
+        });
         
-        owcUserId = newUser.id;
+        if (rpcError) {
+          console.error("RPC error:", rpcError);
+          throw new Error(`Failed to create user: ${rpcError.message}`);
+        }
+        
+        owcUserId = newUserData;
+        console.log("Created new OWC user with ID:", owcUserId);
+        
+        if (!owcUserId) {
+          throw new Error("Failed to get new user ID");
+        }
         
         // Create mapping
+        const mappingData: UserMappingInsert = {
+          auth_user_id: selectedUser.id,
+          owc_user_id: owcUserId,
+          name: selectedUser.name || selectedUser.email.split('@')[0],
+          email: selectedUser.email
+        };
+        
         const { error: newMappingError } = await supabase
           .from('user_mapping')
-          .insert({
-            auth_user_id: selectedUser.id,
-            owc_user_id: owcUserId,
-            name: selectedUser.name || selectedUser.email.split('@')[0],
-            email: selectedUser.email
-          });
+          .insert(mappingData);
           
         if (newMappingError) throw newMappingError;
       }
@@ -393,3 +426,4 @@ const AdminUserGroups: React.FC = () => {
 };
 
 export default AdminUserGroups;
+
