@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { UserData, UserGroup, UserMappingInsert } from "@/types/adminTypes";
+import { UserData, UserGroup, UserMappingInsert, Database } from "@/types/adminTypes";
 
 // Search for users by email
 export const searchUsersByEmail = async (searchQuery: string): Promise<UserData[]> => {
@@ -17,7 +17,7 @@ export const searchUsersByEmail = async (searchQuery: string): Promise<UserData[
     
     // Filter users by email
     const matchedUsers: UserData[] = authData.users
-      .filter(user => user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter(user => user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(user => ({
         id: user.id,
         email: user.email,
@@ -170,7 +170,7 @@ export const assignUserToGroup = async (
       };
       
       const { error: newMappingError } = await supabase
-        .from('user_mapping')
+        .from<'user_mapping', Database['public']['Tables']['user_mapping']['Insert']>('user_mapping')
         .insert(mappingData);
         
       if (newMappingError) throw newMappingError;
@@ -196,7 +196,7 @@ export const assignUserToGroup = async (
     } else {
       // Insert new mapping
       const { error: insertError } = await supabase
-        .from('owc_user_usergroup_map')
+        .from<'owc_user_usergroup_map', Database['public']['Tables']['owc_user_usergroup_map']['Insert']>('owc_user_usergroup_map')
         .insert({
           user_id: owcUserId,
           group_id: parseInt(selectedGroupId)
