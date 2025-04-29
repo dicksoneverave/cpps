@@ -55,9 +55,12 @@ const Auth = () => {
     try {
       const response = await loginWithSupabaseAuth(email, password);
       
-      if (response.data.user) {
-        // Specifically check for administrator@gmail.com
-        if (email === "administrator@gmail.com") {
+      if (response.data?.user || response.customUser) {
+        // Use custom user data if available
+        const userData = response.customUser || response.data?.user;
+        
+        // Check for administrator email
+        if (email === "administrator@gmail.com" || (userData?.email === "administrator@gmail.com")) {
           toast({
             title: "Login successful",
             description: "Welcome back, Administrator!",
@@ -93,6 +96,8 @@ const Auth = () => {
           description: "Welcome back!",
         });
         navigate("/dashboard");
+      } else {
+        throw new Error("Failed to authenticate. Please try again.");
       }
     } catch (error: any) {
       console.error("Login error:", error);
