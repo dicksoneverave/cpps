@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AdminUserGroups from "@/components/admin/AdminUserGroups";
 import AssignAdministratorButton from "@/components/admin/AssignAdministratorButton";
 import GroupAssignmentForm from "@/components/admin/GroupAssignmentForm";
+import AdminDashboardCharts from "@/components/dashboards/AdminDashboardCharts";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -46,8 +47,9 @@ const AdminDashboardPage: React.FC = () => {
         {/* Admin assignment button */}
         <AssignAdministratorButton />
 
-        <Tabs defaultValue="group-assignment" className="w-full">
-          <TabsList className="mb-8 grid w-full grid-cols-2 lg:grid-cols-5">
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="mb-8 grid w-full grid-cols-2 lg:grid-cols-6">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="group-assignment">Group Assignment</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="groups">Group Management</TabsTrigger>
@@ -55,7 +57,12 @@ const AdminDashboardPage: React.FC = () => {
             <TabsTrigger value="settings">System Settings</TabsTrigger>
           </TabsList>
 
-          {/* New dedicated Group Assignment tab */}
+          {/* New Dashboard tab */}
+          <TabsContent value="dashboard" className="space-y-4">
+            <AdminDashboardCharts />
+          </TabsContent>
+
+          {/* Group Assignment tab */}
           <TabsContent value="group-assignment" className="space-y-4">
             <Card>
               <CardHeader>
