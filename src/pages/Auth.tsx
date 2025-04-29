@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/components/ui/use-toast";
 import LoginForm from "@/components/auth/LoginForm";
 import AuthHeader from "@/components/auth/AuthHeader";
+import { loginWithSupabaseAuth } from "@/services/authService";
 import { fetchUserRoleFromMapping } from "@/services/authService";
 import { supabase } from "@/integrations/supabase/client";
-import MD5 from 'crypto-js/md5';
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -53,51 +53,9 @@ const Auth = () => {
     setError(null);
 
     try {
-      // Hash the password for comparison
-      const hashedPassword = MD5(password).toString();
+      const response = await loginWithSupabaseAuth(email, password);
       
-      // Find user in our custom users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-      
-      if (userError) {
-        throw new Error("Invalid email or password. Please try again.");
-      }
-      
-      // Check if password matches
-      if (userData.password !== hashedPassword) {
-        throw new Error("Invalid email or password. Please try again.");
-      }
-      
-      // If password matches, sign in with Supabase Auth
-      // This creates a session that we can use for authorization
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,  // We're still using this for the Supabase Auth
-      });
-      
-      if (authError) {
-        // If the auth sign-in fails but our password check passed,
-        // we'll sign up the user in Supabase Auth (this is a migration scenario)
-        const { data: signupData, error: signupError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name: userData.name }
-          }
-        });
-        
-        if (signupError) throw signupError;
-        
-        // If signup was successful, set the user in the session
-        toast({
-          title: "Account created in auth system",
-          description: "Your account has been created and you're now logged in.",
-        });
-      } else if (authData.user) {
+      if (response.data.user) {
         // Specifically check for administrator@gmail.com
         if (email === "administrator@gmail.com") {
           toast({
@@ -136,7 +94,7 @@ const Auth = () => {
         });
         navigate("/dashboard");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
       let errorMessage = "Invalid email or password. Please try again.";
       

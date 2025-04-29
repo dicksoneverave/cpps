@@ -58,7 +58,7 @@ const UserManagement: React.FC = () => {
         }));
         setUsers(formattedUsers);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching users:", error);
       toast({
         variant: "destructive",
@@ -93,11 +93,11 @@ const UserManagement: React.FC = () => {
       // Insert directly into our users table
       const { data, error } = await supabase
         .from('users')
-        .insert({
+        .insert([{
           email: newUserData.email,
           name: newUserData.name || newUserData.email.split("@")[0],
           password: hashedPassword
-        })
+        }])
         .select();
 
       if (error) throw error;
@@ -113,7 +113,7 @@ const UserManagement: React.FC = () => {
 
       // Refresh user list
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
         variant: "destructive",
@@ -153,7 +153,7 @@ const UserManagement: React.FC = () => {
           ? { ...user, password: hashedPassword } 
           : user
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error resetting password:", error);
       toast({
         variant: "destructive",
@@ -182,7 +182,7 @@ const UserManagement: React.FC = () => {
       // Reset selected user and refresh list
       setSelectedUser(null);
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
       toast({
         variant: "destructive",
