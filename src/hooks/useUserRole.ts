@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from "react";
-import { fetchUserRoleComprehensive } from "@/services/roleService";
+import { fetchUserRoleComprehensive } from "@/services/auth";
 import { isAdminRole } from "@/utils/roleUtils";
 
 export const useUserRole = () => {
