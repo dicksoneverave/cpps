@@ -52,7 +52,17 @@ const Auth = () => {
       if (authData.user) {
         console.log("Logged in with Supabase auth:", authData.user.id);
         
-        // Get user role from the mapping
+        // Specifically check for administrator@gmail.com
+        if (authData.user.email === "administrator@gmail.com") {
+          toast({
+            title: "Login successful",
+            description: "Welcome back, Administrator!",
+          });
+          navigate("/admin");
+          return;
+        }
+        
+        // For other users, get role from the mapping
         try {
           const userRole = await fetchUserRoleFromMapping(email);
           if (userRole) {

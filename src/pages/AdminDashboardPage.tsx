@@ -46,13 +46,27 @@ const AdminDashboardPage: React.FC = () => {
         {/* Admin assignment button */}
         <AssignAdministratorButton />
 
-        <Tabs defaultValue="users" className="w-full">
+        <Tabs defaultValue="forms" className="w-full">
           <TabsList className="mb-8 grid w-full grid-cols-2 lg:grid-cols-4">
+            <TabsTrigger value="forms">Form Management</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="groups">Group Management</TabsTrigger>
-            <TabsTrigger value="forms">Form Management</TabsTrigger>
             <TabsTrigger value="settings">System Settings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="forms" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Group Assignment Form</CardTitle>
+                <CardDescription>
+                  Easily add or remove users from groups using this form
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GroupAssignmentForm />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
             <Card>
@@ -78,20 +92,6 @@ const AdminDashboardPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p>Group management functionality will be implemented here.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="forms">
-            <Card>
-              <CardHeader>
-                <CardTitle>Group Assignment Form</CardTitle>
-                <CardDescription>
-                  Easily add or remove users from groups using this form
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <GroupAssignmentForm />
               </CardContent>
             </Card>
           </TabsContent>
