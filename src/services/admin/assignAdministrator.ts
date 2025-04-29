@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { assignUserToGroup } from "./userGroupAssignmentService";
 import { UserData } from "@/types/adminTypes";
+import { User } from "@supabase/supabase-js";
 
 export const assignAdministratorToAdminGroup = async (adminEmail: string = "administrator@gmail.com") => {
   try {
@@ -18,7 +19,7 @@ export const assignAdministratorToAdminGroup = async (adminEmail: string = "admi
     }
     
     // Find the admin user by email
-    const adminUser = authData.users.find(user => user.email === adminEmail);
+    const adminUser = authData.users.find((user: User) => user.email === adminEmail);
     
     if (!adminUser) {
       throw new Error(`Admin user with email ${adminEmail} not found`);
