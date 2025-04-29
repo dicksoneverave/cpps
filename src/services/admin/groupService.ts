@@ -7,7 +7,7 @@ export const fetchUserGroups = async (): Promise<UserGroup[]> => {
   try {
     const { data, error } = await supabase
       .from('owc_usergroups')
-      .select('id, title, parent_id')
+      .select('id, title')
       .order('title');
     
     if (error) throw error;

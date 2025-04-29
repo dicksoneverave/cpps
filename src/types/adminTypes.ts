@@ -1,10 +1,8 @@
-
 import { User as SupabaseUser } from "@supabase/supabase-js";
 
 export interface UserGroup {
   id: number;
   title: string;
-  parent_id: string;
 }
 
 export interface UserData {
