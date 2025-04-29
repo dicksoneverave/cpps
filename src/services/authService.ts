@@ -13,102 +13,109 @@ export interface UserGroupData {
 
 export const loginWithSupabaseAuth = async (email: string, password: string) => {
   try {
-    // Check with our custom users table first
-    const { data: userData, error: userError } = await supabase
-      .from('users')
+    // Check with our owc_users table first
+    const { data: owcUserData, error: owcUserError } = await supabase
+      .from('owc_users')
       .select('*')
       .eq('email', email)
       .maybeSingle();
       
-    if (userError) {
-      throw new Error("Invalid email or password. Please try again.");
+    if (owcUserError) {
+      console.error("Error fetching owc_user:", owcUserError);
+      throw new Error("Authentication service error. Please try again.");
     }
     
-    if (!userData) {
-      throw new Error("User not found. Please check your email and try again.");
+    if (!owcUserData) {
+      // Fallback to check users table if no owc_user found
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+        
+      if (userError || !userData) {
+        throw new Error("User not found. Please check your email and try again.");
+      }
+      
+      // For users table, verify with MD5
+      const hashedPassword = MD5(password).toString();
+      
+      if (userData?.password !== hashedPassword) {
+        throw new Error("Invalid email or password. Please try again.");
+      }
+      
+      // Return success with the user data
+      return { 
+        data: null, 
+        error: null,
+        customUser: userData
+      };
     }
     
-    // Hash the password for comparison
-    const hashedPassword = MD5(password).toString();
+    // Verify password against owc_users table
+    // Joomla passwords could be in different formats, use the utility function
+    const isPasswordValid = verifyJoomlaPassword(password, owcUserData.password);
     
-    // Check if password matches
-    if (userData?.password !== hashedPassword) {
+    if (!isPasswordValid) {
       throw new Error("Invalid email or password. Please try again.");
     }
     
     // If the user exists and password is correct, manually create a session
-    // First, check if there is an existing Supabase auth user for this email
     try {
-      // Create a custom session by signing in as the user (without password verification)
-      // This approach uses a Supabase session for auth state but with our password verification
+      // Create a Supabase auth session if possible
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
-        password, // Supabase will validate this, but we've already validated against our custom table
+        password,
       });
       
-      if (authError) {
-        // If auth fails (likely user doesn't exist in Supabase Auth), try to sign up
-        const { data: signupData, error: signupError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name: userData?.name }
-          }
-        });
-        
-        if (signupError) {
-          console.error("Error during signup:", signupError);
-          // We still continue since we've verified the password in our users table
-        }
-        
-        // Create a mapping between the auth user and our custom user table
-        if (signupData.user) {
-          try {
-            // Use type assertion to work around the TypeScript error
-            // This is necessary because the generated types don't recognize user_mapping table
+      if (!authError) {
+        // Map the owc_user to auth user if successful authentication
+        try {
+          const { data: mappingData } = await supabase
+            .from('user_mapping')
+            .select('*')
+            .eq('email', email)
+            .maybeSingle();
+            
+          if (!mappingData) {
+            // Create mapping if it doesn't exist
             await supabase
               .from('user_mapping')
               .insert({
                 email: email,
-                auth_user_id: signupData.user.id,
-                name: userData.name,
+                owc_user_id: owcUserData.id,
+                auth_user_id: authData.user?.id,
+                name: owcUserData.name
               } as any); // Use type assertion to bypass TypeScript check
-          } catch (mappingError) {
-            console.error("Error creating user mapping:", mappingError);
           }
+        } catch (mappingError) {
+          console.error("Error with user mapping:", mappingError);
+          // Continue even if mapping fails
         }
         
-        // Return success with the signup data
         return { 
-          data: signupData, 
+          data: authData, 
           error: null,
-          customUser: userData // Include the custom user data
+          customUser: owcUserData
         };
       }
       
-      // If successful auth login, return the data
-      return { 
-        data: authData, 
+      // If Supabase auth fails, still return success since we verified the custom user
+      console.log("Supabase auth failed but OWC user verified:", authError);
+      return {
+        data: null,
         error: null,
-        customUser: userData // Include the custom user data
+        customUser: owcUserData
       };
+      
     } catch (authError) {
       console.error("Authentication error:", authError);
       
       // Even if Supabase auth fails, we can still return success since we validated the custom user
       return {
-        data: {
-          session: null,
-          user: {
-            id: userData.id,
-            email: userData.email,
-            user_metadata: {
-              name: userData.name
-            }
-          }
-        },
+        data: null,
         error: null,
-        customUser: userData
+        customUser: owcUserData
       };
     }
   } catch (error) {
@@ -130,17 +137,56 @@ export const loginWithSupabaseAuth = async (email: string, password: string) => 
 
 export const fetchUserRoleFromMapping = async (email: string) => {
   try {
+    // First try to get the owc_user_id from user_mapping table
     const { data: mappingData } = await supabase
       .from('user_mapping')
       .select('owc_user_id')
       .eq('email', email)
-      .maybeSingle(); // Use maybeSingle instead of single to avoid errors if no data found
+      .maybeSingle();
 
     if (!mappingData?.owc_user_id) {
-      console.log("No mapping found for email:", email);
+      // If no mapping found, try to get owc_user directly
+      const { data: owcUserData } = await supabase
+        .from('owc_users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+        
+      if (!owcUserData?.id) {
+        console.log("No OWC user found for email:", email);
+        return null;
+      }
+      
+      // Use the direct owc_user id
+      const { data: userGroupData, error: userGroupError } = await supabase
+        .from('owc_user_usergroup_map')
+        .select(`
+          group_id,
+          owc_usergroups:owc_usergroups(title)
+        `)
+        .eq('user_id', owcUserData.id)
+        .maybeSingle();
+        
+      if (userGroupError) {
+        console.error("Error fetching user group data:", userGroupError);
+        return null;
+      }
+      
+      if (!userGroupData) {
+        console.log("No user group found for owc_user_id:", owcUserData.id);
+        return null;
+      }
+      
+      // Cast to the right type structure
+      const userGroup = userGroupData.owc_usergroups as unknown as { title?: string };
+      if (userGroup && userGroup.title) {
+        return userGroup.title;
+      }
+      
       return null;
     }
     
+    // If mapping found, use the owc_user_id from mapping
     const { data: userGroupData, error: userGroupError } = await supabase
       .from('owc_user_usergroup_map')
       .select(`
@@ -148,7 +194,7 @@ export const fetchUserRoleFromMapping = async (email: string) => {
         owc_usergroups:owc_usergroups(title)
       `)
       .eq('user_id', mappingData.owc_user_id)
-      .maybeSingle(); // Use maybeSingle instead of single
+      .maybeSingle();
 
     if (userGroupError) {
       console.error("Error fetching user group data:", userGroupError);

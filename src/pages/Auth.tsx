@@ -53,11 +53,13 @@ const Auth = () => {
     setError(null);
 
     try {
+      console.log("Attempting login for email:", email);
       const response = await loginWithSupabaseAuth(email, password);
       
       if (response.data?.user || response.customUser) {
         // Use custom user data if available
         const userData = response.customUser || response.data?.user;
+        console.log("Login successful for:", userData?.email || userData?.name);
         
         // Check for administrator email
         if (email === "administrator@gmail.com" || (userData?.email === "administrator@gmail.com")) {
@@ -72,6 +74,8 @@ const Auth = () => {
         // For other users, get role from the mapping
         try {
           const userRole = await fetchUserRoleFromMapping(email);
+          console.log("User role:", userRole);
+          
           if (userRole) {
             // Store the role in session storage for access in the app
             sessionStorage.setItem('userRole', userRole);
