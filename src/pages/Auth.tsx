@@ -23,6 +23,11 @@ const Auth = () => {
       if (data.session) {
         // Check if the user is an admin
         const userEmail = data.session.user.email;
+        if (userEmail === "administrator@gmail.com") {
+          navigate("/admin");
+          return;
+        }
+        
         if (userEmail) {
           try {
             const userRole = await fetchUserRoleFromMapping(userEmail);
