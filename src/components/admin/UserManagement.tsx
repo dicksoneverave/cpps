@@ -10,6 +10,9 @@ import ResetPasswordDialog from "./user/ResetPasswordDialog";
 import UserActionButtons from "./user/UserActionButtons";
 import { useUserManagement } from "@/hooks/useUserManagement";
 import { UserData } from "@/types/adminTypes";
+import UserSearch from "./UserSearch";
+import { searchUsersByEmail } from "@/services/admin/userService";
+import UserSearchResults from "./UserSearchResults";
 
 const UserManagement: React.FC = () => {
   const { 
@@ -26,6 +29,9 @@ const UserManagement: React.FC = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<UserData[]>([]);
   const usersPerPage = 12;
 
   // Fetch users on component mount
@@ -41,6 +47,27 @@ const UserManagement: React.FC = () => {
     if (!selectedUser) return;
     await deleteUser(selectedUser.id);
   };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const results = await searchUsersByEmail(searchQuery);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Error searching users:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Reset search when query is cleared
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
 
   // Calculate the current page's users
   const indexOfLastUser = currentPage * usersPerPage;
@@ -63,7 +90,21 @@ const UserManagement: React.FC = () => {
               <span>Add User</span>
             </Button>
           </CardHeader>
-          <CardContent className="pb-6">
+          <CardContent className="pb-6 space-y-4">
+            {/* Search Component */}
+            <UserSearch 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onSearch={handleSearch}
+              isSearching={isSearching}
+            />
+            
+            {/* Search Results */}
+            <UserSearchResults 
+              results={searchResults}
+              onSelectUser={handleSelectUser}
+            />
+            
             <UserList
               title="Registered Users"
               users={currentUsers}
