@@ -1506,23 +1506,14 @@ export type Database = {
       owc_usergroups: {
         Row: {
           id: number
-          lft: number | null
-          parent_id: string | null
-          rgt: number | null
           title: string | null
         }
         Insert: {
           id: number
-          lft?: number | null
-          parent_id?: string | null
-          rgt?: number | null
           title?: string | null
         }
         Update: {
           id?: number
-          lft?: number | null
-          parent_id?: string | null
-          rgt?: number | null
           title?: string | null
         }
         Relationships: []

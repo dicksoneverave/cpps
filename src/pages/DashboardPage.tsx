@@ -18,7 +18,7 @@ const DashboardPage: React.FC = () => {
         return;
       }
       
-      // Check if this is administrator@gmail.com and redirect to admin
+      // Special case for administrator@gmail.com
       if (user.email === "administrator@gmail.com") {
         navigate("/admin");
         return;

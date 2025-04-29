@@ -1,12 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import EmployerDashboard from "./dashboards/EmployerDashboard";
-import RegistrarDashboard from "./dashboards/RegistrarDashboard";
-import CommissionerDashboard from "./dashboards/CommissionerDashboard";
-import PaymentDashboard from "./dashboards/PaymentDashboard";
-import AdminDashboard from "./dashboards/AdminDashboard";
 import DefaultDashboard from "./dashboards/DefaultDashboard";
+import DynamicDashboard from "./dashboards/DynamicDashboard";
 import ClaimsChart from "./dashboards/ClaimsCharts";
 
 interface DashboardProps {
@@ -45,23 +41,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Render role-specific dashboard
   const renderRoleDashboard = () => {
-    const normalizedRole = userRole?.toLowerCase() || '';
+    if (!user || !userRole) return <DefaultDashboard />;
     
-    if (!user) return <DefaultDashboard />;
-    
-    if (normalizedRole.includes('employer')) {
-      return <EmployerDashboard />;
-    } else if (normalizedRole.includes('registrar') || normalizedRole.includes('deputy registrar')) {
-      return <RegistrarDashboard />;
-    } else if (normalizedRole.includes('commissioner') || normalizedRole.includes('chief commissioner')) {
-      return <CommissionerDashboard />;
-    } else if (normalizedRole.includes('payment')) {
-      return <PaymentDashboard />;
-    } else if (normalizedRole.includes('admin') || normalizedRole.includes('owc admin')) {
-      return <AdminDashboard />;
-    }
-    
-    return <DefaultDashboard />;
+    // If there's a valid userRole, use the DynamicDashboard
+    return <DynamicDashboard groupTitle={userRole} />;
   };
 
   const injuryChartConfig = {
