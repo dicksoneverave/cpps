@@ -26,10 +26,11 @@ interface UserGroup {
 
 interface UserData {
   id: string;
-  email: string;
+  email: string | null;
   name?: string;
   group_id?: number;
   group_title?: string;
+  owc_user_id?: number;
 }
 
 const AdminUserGroups: React.FC = () => {
@@ -74,25 +75,22 @@ const AdminUserGroups: React.FC = () => {
     setIsSearching(true);
     try {
       // First look in auth users
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) throw authError;
       
       // Filter users by email
-      const matchedUsers = authUsers?.users
+      const matchedUsers = authData?.users
         .filter(user => user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
         .map(user => ({
           id: user.id,
-          email: user.email || 'No email',
+          email: user.email,
           name: user.user_metadata?.name || 'Unknown'
         })) || [];
       
       // Get user group mappings
       if (matchedUsers.length > 0) {
-        const userIds = matchedUsers.map(user => {
-          // Need to find owc_user_id from user_mapping
-          return user.id;
-        });
+        const userIds = matchedUsers.map(user => user.id);
         
         // Get user mappings
         const { data: mappings, error: mappingError } = await supabase
@@ -108,14 +106,30 @@ const AdminUserGroups: React.FC = () => {
         if (owcUserIds.length > 0) {
           const { data: groupMappings, error: groupError } = await supabase
             .from('owc_user_usergroup_map')
-            .select(`
-              user_id,
-              group_id,
-              owc_usergroups:owc_usergroups(id, title)
-            `)
+            .select('user_id, group_id')
             .in('user_id', owcUserIds);
             
           if (groupError) throw groupError;
+          
+          // Get group titles
+          const groupIds = groupMappings?.map(gm => gm.group_id) || [];
+          
+          let groupTitles: Record<number, string> = {};
+          
+          if (groupIds.length > 0) {
+            const { data: groups, error: groupsError } = await supabase
+              .from('owc_usergroups')
+              .select('id, title')
+              .in('id', groupIds);
+              
+            if (groupsError) throw groupsError;
+            
+            if (groups) {
+              groups.forEach(group => {
+                groupTitles[group.id] = group.title;
+              });
+            }
+          }
           
           // Merge data
           const enhancedUsers = matchedUsers.map(user => {
@@ -129,7 +143,7 @@ const AdminUserGroups: React.FC = () => {
               name: mapping?.name || user.name,
               owc_user_id: mapping?.owc_user_id,
               group_id: groupMapping?.group_id,
-              group_title: groupMapping?.owc_usergroups?.title
+              group_title: groupMapping?.group_id ? groupTitles[groupMapping.group_id] : undefined
             };
           });
           
@@ -186,9 +200,13 @@ const AdminUserGroups: React.FC = () => {
       // If mapping doesn't exist, create an OWC user entry and mapping
       if (!owcUserId) {
         // Generate a random username based on email
-        const username = selectedUser.email.split('@')[0] + '_' + Math.floor(Math.random() * 10000);
+        const username = selectedUser.email?.split('@')[0] + '_' + Math.floor(Math.random() * 10000);
         
-        // Insert into owc_users
+        if (!username || !selectedUser.email) {
+          throw new Error("Invalid email or username");
+        }
+        
+        // Insert into owc_users using .select() to get back the inserted ID
         const { data: newUser, error: userError } = await supabase
           .from('owc_users')
           .insert({
