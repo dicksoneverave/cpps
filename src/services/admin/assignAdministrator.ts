@@ -43,7 +43,7 @@ export const assignAdministratorToAdminGroup = async (adminEmail: string = "admi
     // Convert admin user to UserData format
     const userData: UserData = {
       id: adminUser.id,
-      email: adminUser.email,
+      email: adminUser.email || "",
       name: adminUser.user_metadata?.name || 'Administrator'
     };
     
