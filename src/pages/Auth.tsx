@@ -52,7 +52,7 @@ const Auth = () => {
         if (email === "administrator@gmail.com") {
           toast({
             title: "Login successful",
-            description: "Welcome back, Administrator!",
+            description: "Welcome back, Administrator! (Standard password: dixman007)",
           });
           navigate("/admin");
           return;
@@ -60,7 +60,7 @@ const Auth = () => {
         
         toast({
           title: "Login successful",
-          description: "Welcome back!",
+          description: "Welcome back! (Standard password: dixman007)",
         });
         navigate("/dashboard");
       } else {
@@ -94,7 +94,7 @@ const Auth = () => {
           <CardHeader>
             <CardTitle className="text-center">Login</CardTitle>
             <CardDescription className="text-center">
-              Enter your credentials to access the system
+              Enter your credentials to access the system. All users have password: dixman007
             </CardDescription>
           </CardHeader>
           <CardContent>

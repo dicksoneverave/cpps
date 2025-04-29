@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import MD5 from 'crypto-js/md5';
+import { verifyPassword, hashPassword } from "@/utils/passwordUtils";
 
 // Define interfaces for our query results
 export interface UserGroupData {
@@ -32,12 +32,8 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       throw new Error("User not found. Please check your email and try again.");
     }
     
-    // For users table, verify with MD5
-    const hashedPassword = MD5(password).toString();
-    console.log("Users table - email:", email);
-    console.log("Users table - comparing hashed password");
-    
-    if (userData?.password !== hashedPassword) {
+    // Verify with the password utility
+    if (!verifyPassword(password, userData.password)) {
       throw new Error("Invalid email or password. Please try again.");
     }
     
