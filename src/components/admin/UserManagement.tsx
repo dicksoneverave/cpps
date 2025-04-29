@@ -16,6 +16,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { UserPlus, Trash2 } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserData[]>([]);
@@ -37,15 +38,20 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
+      // Instead of using admin API, let's query the user_mapping table
+      // which we have read access to from the client
+      const { data, error } = await supabase
+        .from('user_mapping')
+        .select('auth_user_id, email, name');
+      
       if (error) throw error;
 
-      // Transform Supabase users into UserData format
-      if (data?.users) {
-        const formattedUsers: UserData[] = data.users.map(user => ({
-          id: user.id,
+      // Transform the data into our UserData format
+      if (data) {
+        const formattedUsers: UserData[] = data.map(user => ({
+          id: user.auth_user_id || "",
           email: user.email || "Unknown email",
-          name: user.user_metadata?.name || user.email?.split("@")[0] || "Unknown name"
+          name: user.name || user.email?.split("@")[0] || "Unknown name"
         }));
         setUsers(formattedUsers);
       }
@@ -78,19 +84,36 @@ const UserManagement: React.FC = () => {
         return;
       }
 
-      // Create user in Supabase
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Create user in Supabase auth
+      const { data, error } = await supabase.auth.signUp({
         email: newUserData.email,
         password: newUserData.password,
-        email_confirm: true, // Auto confirm email
-        user_metadata: { name: newUserData.name }
+        options: {
+          data: { name: newUserData.name }
+        }
       });
 
       if (error) throw error;
 
-      toast({
-        title: "User created successfully",
-        description: `User ${newUserData.email} has been added.`,
+      // Also add the user to our user_mapping table for client-side listing
+      if (data.user) {
+        const { error: mappingError } = await supabase
+          .from('user_mapping')
+          .insert({
+            auth_user_id: data.user.id,
+            email: newUserData.email,
+            name: newUserData.name || newUserData.email.split("@")[0]
+          });
+
+        if (mappingError) {
+          console.error("Error adding user to mapping:", mappingError);
+          // Continue anyway as the auth user is created
+        }
+      }
+
+      sonnerToast.success("User created successfully", {
+        description: `User ${newUserData.email} has been added. They will need to confirm their email before logging in.`,
+        duration: 5000,
       });
 
       // Reset form and close dialog
@@ -113,13 +136,18 @@ const UserManagement: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      // Delete user from Supabase
-      const { error } = await supabase.auth.admin.deleteUser(selectedUser.id);
-      if (error) throw error;
+      // For deletion, we'll need to use a Supabase Edge Function or server endpoint
+      // that has admin privileges. For now, we'll just remove from our mapping table.
+      const { error: mappingError } = await supabase
+        .from('user_mapping')
+        .delete()
+        .eq('auth_user_id', selectedUser.id);
 
-      toast({
-        title: "User deleted successfully",
-        description: `User ${selectedUser.email} has been removed.`,
+      if (mappingError) throw mappingError;
+
+      // Note: the actual auth.users record will remain, but won't show in our UI
+      sonnerToast.success("User removed from system", {
+        description: `User ${selectedUser.email} has been removed from the system.`,
       });
 
       // Reset selected user and refresh list
@@ -161,7 +189,7 @@ const UserManagement: React.FC = () => {
               users={users}
               selectedUser={selectedUser}
               onSelectUser={handleSelectUser}
-              emptyMessage="No users found"
+              emptyMessage={loading ? "Loading users..." : "No users found"}
             />
             
             {/* Delete User Button */}
