@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { UserGroup, UserData } from "@/types/adminTypes";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchUserGroups } from "@/services/admin/groupService";
 import { searchUsersByEmail } from "@/services/admin/userService";
 import { assignUserToGroup } from "@/services/admin/userGroupAssignmentService";
 import { useToast } from "@/components/ui/use-toast";
+import UserList from "./UserList";
+import GroupSelector from "./GroupSelector";
+import GroupActionButtons from "./GroupActionButtons";
 
 const GroupAssignmentForm: React.FC = () => {
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
@@ -20,7 +20,7 @@ const GroupAssignmentForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Fetch user groups on mount
+  // Load user groups
   useEffect(() => {
     const loadUserGroups = async () => {
       try {
@@ -41,7 +41,7 @@ const GroupAssignmentForm: React.FC = () => {
     loadUserGroups();
   }, [toast]);
 
-  // Load all users on mount
+  // Load all users
   useEffect(() => {
     const loadAllUsers = async () => {
       setLoading(true);
@@ -63,37 +63,32 @@ const GroupAssignmentForm: React.FC = () => {
     loadAllUsers();
   }, [toast]);
 
-  // Load users in the selected group when group changes
+  // Filter users based on selected group
   useEffect(() => {
     if (selectedGroupId) {
-      const loadGroupUsers = async () => {
-        setLoading(true);
-        try {
-          // Filter users by the selected group
-          const users = allUsers.filter(user => 
-            user.group_id?.toString() === selectedGroupId
-          );
-          setGroupUsers(users);
-        } catch (error) {
-          console.error("Error loading group users:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadGroupUsers();
+      setLoading(true);
+      try {
+        // Filter users by the selected group
+        const users = allUsers.filter(user => 
+          user.group_id?.toString() === selectedGroupId
+        );
+        setGroupUsers(users);
+      } catch (error) {
+        console.error("Error loading group users:", error);
+      } finally {
+        setLoading(false);
+      }
     } else {
       setGroupUsers([]);
     }
   }, [selectedGroupId, allUsers]);
 
-  // Handle user selection from the all users list
+  // Handle user selection
   const handleSelectUser = (user: UserData) => {
     setSelectedUser(user);
     setSelectedGroupUser(null);
   };
 
-  // Handle user selection from the group users list
   const handleSelectGroupUser = (user: UserData) => {
     setSelectedGroupUser(user);
     setSelectedUser(null);
@@ -149,7 +144,6 @@ const GroupAssignmentForm: React.FC = () => {
     setLoading(true);
     try {
       // For removal, we'll assign to a special "no group" value or another default group
-      // This depends on your application's logic for "no group" users
       await assignUserToGroup(selectedGroupUser, "0"); // Assuming "0" means no group
       
       // Update UI
@@ -173,93 +167,55 @@ const GroupAssignmentForm: React.FC = () => {
     }
   };
 
+  // Filter available users to exclude those already in the selected group
+  const availableUsers = allUsers.filter(
+    user => !groupUsers.some(groupUser => groupUser.id === user.id)
+  );
+
   return (
     <Card className="w-full">
       <CardContent className="p-6">
         <div className="flex space-x-6 h-[500px]">
-          {/* Left side: All Users */}
-          <div className="w-1/3 flex flex-col">
-            <h3 className="font-medium mb-2">Available Users</h3>
-            <ScrollArea className="flex-1 border rounded-md p-2">
-              <div className="space-y-1">
-                {allUsers
-                  .filter(user => !groupUsers.some(groupUser => groupUser.id === user.id))
-                  .map((user) => (
-                    <div
-                      key={user.id}
-                      className={`p-2 cursor-pointer rounded ${
-                        selectedUser?.id === user.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                      }`}
-                      onClick={() => handleSelectUser(user)}
-                    >
-                      {user.email || "Unknown email"}
-                    </div>
-                  ))}
-              </div>
-            </ScrollArea>
+          {/* Left side: All Available Users */}
+          <div className="w-1/3">
+            <UserList 
+              title="Available Users"
+              users={availableUsers}
+              selectedUser={selectedUser}
+              onSelectUser={handleSelectUser}
+              emptyMessage="No available users"
+            />
           </div>
 
           {/* Middle: Add/Remove buttons */}
-          <div className="flex flex-col justify-center space-y-4">
-            <Button 
-              onClick={handleAddToGroup} 
-              disabled={!selectedUser || loading}
-              className="w-20 justify-center"
-            >
-              Add &gt;&gt;
-            </Button>
-            <Button 
-              onClick={handleRemoveFromGroup} 
-              disabled={!selectedGroupUser || loading}
-              className="w-20 justify-center"
-            >
-              &lt;&lt; Remove
-            </Button>
-          </div>
+          <GroupActionButtons
+            onAddToGroup={handleAddToGroup}
+            onRemoveFromGroup={handleRemoveFromGroup}
+            canAdd={!!selectedUser}
+            canRemove={!!selectedGroupUser}
+            loading={loading}
+          />
 
           {/* Right side: Group Selection and Users in Group */}
           <div className="w-1/3 flex flex-col">
             {/* Group Selection Dropdown */}
             <div className="mb-4">
               <h3 className="font-medium mb-2">Select Group</h3>
-              <Select 
-                value={selectedGroupId} 
-                onValueChange={setSelectedGroupId}
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a group..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {userGroups.map((group) => (
-                    <SelectItem key={group.id} value={group.id.toString()}>
-                      {group.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <GroupSelector
+                userGroups={userGroups}
+                selectedGroupId={selectedGroupId}
+                onGroupSelect={setSelectedGroupId}
+              />
             </div>
 
             {/* Users in Group */}
-            <h3 className="font-medium mb-2">Users in Group</h3>
-            <ScrollArea className="flex-1 border rounded-md p-2">
-              <div className="space-y-1">
-                {groupUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className={`p-2 cursor-pointer rounded ${
-                      selectedGroupUser?.id === user.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                    }`}
-                    onClick={() => handleSelectGroupUser(user)}
-                  >
-                    {user.email || "Unknown email"}
-                  </div>
-                ))}
-                {groupUsers.length === 0 && (
-                  <div className="text-gray-500 p-2">No users in this group</div>
-                )}
-              </div>
-            </ScrollArea>
+            <UserList
+              title="Users in Group"
+              users={groupUsers}
+              selectedUser={selectedGroupUser}
+              onSelectUser={handleSelectGroupUser}
+              emptyMessage="No users in this group"
+            />
           </div>
         </div>
       </CardContent>
