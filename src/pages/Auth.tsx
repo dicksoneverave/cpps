@@ -108,9 +108,12 @@ const Auth = () => {
               error={error}
             />
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <div className="text-sm text-gray-500">
+          <CardFooter className="flex flex-col justify-center">
+            <div className="text-sm text-gray-500 text-center">
               Having trouble logging in? Please contact system administration.
+            </div>
+            <div className="text-xs text-gray-400 mt-2 text-center">
+              After login, you'll be directed to your role-specific dashboard based on your user group.
             </div>
           </CardFooter>
         </Card>

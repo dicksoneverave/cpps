@@ -45,19 +45,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Render role-specific dashboard
   const renderRoleDashboard = () => {
-    const normalizedRole = userRole?.toLowerCase();
+    const normalizedRole = userRole?.toLowerCase() || '';
     
     if (!user) return <DefaultDashboard />;
     
-    if (normalizedRole?.includes('employer')) {
+    if (normalizedRole.includes('employer')) {
       return <EmployerDashboard />;
-    } else if (normalizedRole?.includes('registrar')) {
+    } else if (normalizedRole.includes('registrar') || normalizedRole.includes('deputy registrar')) {
       return <RegistrarDashboard />;
-    } else if (normalizedRole?.includes('commissioner')) {
+    } else if (normalizedRole.includes('commissioner') || normalizedRole.includes('chief commissioner')) {
       return <CommissionerDashboard />;
-    } else if (normalizedRole?.includes('payment')) {
+    } else if (normalizedRole.includes('payment')) {
       return <PaymentDashboard />;
-    } else if (normalizedRole?.includes('admin') || normalizedRole?.includes('owcadmin')) {
+    } else if (normalizedRole.includes('admin') || normalizedRole.includes('owc admin')) {
       return <AdminDashboard />;
     }
     
@@ -78,7 +78,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   return (
     <div className="container mx-auto p-4 mt-8">
-      <h1 className="text-2xl font-bold mb-6">Dashboard - {userRole}</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        Dashboard - {userRole || 'User'}
+        {!userRole && <span className="text-sm text-gray-500 ml-2">(No role assigned)</span>}
+      </h1>
       
       {/* Role-Specific Dashboard */}
       {renderRoleDashboard()}

@@ -6,8 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const isAdminRole = (role: string | null): boolean => {
   if (!role) return false;
-  const adminRoles = ["OWC Admin", "owcadmin"];
-  return adminRoles.includes(role);
+  const adminRoles = ["OWC Admin", "owcadmin", "OWCAdminMenu"];
+  return adminRoles.some(adminRole => 
+    role.toLowerCase().includes(adminRole.toLowerCase())
+  );
 };
 
 /**

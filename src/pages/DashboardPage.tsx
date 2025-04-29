@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/components/Dashboard";
 import Navbar from "@/components/Navbar";
+import { Loader2 } from "lucide-react";
 
 const DashboardPage: React.FC = () => {
   const { user, loading, userRole } = useAuth();
@@ -26,7 +27,12 @@ const DashboardPage: React.FC = () => {
   }, [user, loading, navigate]);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <span>Loading your dashboard...</span>
+      </div>
+    );
   }
 
   return (
