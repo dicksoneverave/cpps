@@ -32,12 +32,31 @@ const UserManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<UserData[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
   const usersPerPage = 12;
 
   // Fetch users on component mount
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Filter users as user types in the search box
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredUsers(users);
+      setSearchResults([]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = users.filter(user => 
+      (user.email && user.email.toLowerCase().includes(query)) || 
+      (user.name && user.name.toLowerCase().includes(query))
+    );
+    
+    setFilteredUsers(filtered);
+    setCurrentPage(1); // Reset to first page when filtering
+  }, [searchQuery, users]);
 
   const handleSelectUser = (user: UserData) => {
     setSelectedUser(user);
@@ -62,18 +81,11 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // Reset search when query is cleared
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-    }
-  }, [searchQuery]);
-
   // Calculate the current page's users
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(users.length / usersPerPage);
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -100,18 +112,20 @@ const UserManagement: React.FC = () => {
             />
             
             {/* Search Results */}
-            <UserSearchResults 
-              results={searchResults}
-              onSelectUser={handleSelectUser}
-            />
+            {searchResults.length > 0 && (
+              <UserSearchResults 
+                results={searchResults}
+                onSelectUser={handleSelectUser}
+              />
+            )}
             
             <UserList
-              title="Registered Users"
+              title={searchQuery ? `Search Results: ${filteredUsers.length} found` : "Registered Users"}
               users={currentUsers}
               selectedUser={selectedUser}
               onSelectUser={handleSelectUser}
-              emptyMessage={loading ? "Loading users..." : "No users found"}
-              totalUsers={users.length}
+              emptyMessage={loading ? "Loading users..." : searchQuery ? "No matching users found" : "No users found"}
+              totalUsers={filteredUsers.length}
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
