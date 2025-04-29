@@ -23,8 +23,8 @@ const AdminDashboardPage: React.FC = () => {
       return;
     }
 
-    // Admin role check
-    if (!loading && user && !isAdmin) {
+    // Admin role check - allow administrator@gmail.com email directly
+    if (!loading && user && !isAdmin && user.email !== "administrator@gmail.com") {
       toast({
         title: "Access Restricted",
         description: "You do not have permission to access the admin dashboard.",

@@ -8,7 +8,7 @@ export const useAuthState = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { userRole, isAdmin, fetchUserRole } = useUserRole();
+  const { userRole, isAdmin, fetchUserRole, setIsAdmin } = useUserRole();
 
   const initializeAuth = useCallback(async () => {
     try {
@@ -18,14 +18,19 @@ export const useAuthState = () => {
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        await fetchUserRole(currentSession.user.id, currentSession.user.email || "");
+        // Directly set admin flag for administrator@gmail.com
+        if (currentSession.user.email === "administrator@gmail.com") {
+          setIsAdmin(true);
+        } else {
+          await fetchUserRole(currentSession.user.id, currentSession.user.email || "");
+        }
       }
     } catch (error) {
       console.error("Error initializing auth:", error);
     } finally {
       setLoading(false);
     }
-  }, [fetchUserRole]);
+  }, [fetchUserRole, setIsAdmin]);
 
   useEffect(() => {
     // Set up the auth state listener first
@@ -37,12 +42,18 @@ export const useAuthState = () => {
         
         // If session changes, fetch the user role
         if (newSession?.user) {
-          // Use a timeout to avoid deadlocks in the Supabase auth state manager
-          setTimeout(() => {
-            fetchUserRole(newSession.user.id, newSession.user.email || "");
-          }, 0);
+          // Directly set admin flag for administrator@gmail.com
+          if (newSession.user.email === "administrator@gmail.com") {
+            setIsAdmin(true);
+          } else {
+            // Use a timeout to avoid deadlocks in the Supabase auth state manager
+            setTimeout(() => {
+              fetchUserRole(newSession.user.id, newSession.user.email || "");
+            }, 0);
+          }
         } else {
           sessionStorage.removeItem('userRole');
+          setIsAdmin(false);
         }
       }
     );
@@ -52,7 +63,7 @@ export const useAuthState = () => {
 
     // Cleanup subscription on unmount
     return () => subscription.unsubscribe();
-  }, [initializeAuth, fetchUserRole]);
+  }, [initializeAuth, fetchUserRole, setIsAdmin]);
 
   return { session, user, userRole, loading, isAdmin };
 };

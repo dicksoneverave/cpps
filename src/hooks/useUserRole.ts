@@ -9,6 +9,13 @@ export const useUserRole = () => {
 
   const fetchUserRole = useCallback(async (userId: string, email: string) => {
     try {
+      // Special case for administrator@gmail.com
+      if (email === "administrator@gmail.com") {
+        setUserRole("OWC Admin");
+        setIsAdmin(true);
+        return;
+      }
+      
       const role = await fetchUserRoleComprehensive(userId, email);
       setUserRole(role);
       setIsAdmin(isAdminRole(role));
