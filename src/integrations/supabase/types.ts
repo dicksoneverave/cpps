@@ -2137,7 +2137,20 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      create_owc_user: {
+        Args: {
+          p_name: string
+          p_username: string
+          p_email: string
+          p_password: string
+          p_block: string
+          p_send_email: string
+          p_register_date: string
+          p_require_reset: string
+          p_auth_provider: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

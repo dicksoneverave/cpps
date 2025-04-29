@@ -107,7 +107,7 @@ const AdminUserGroups: React.FC = () => {
       }
       
       // Filter users by email
-      const matchedUsers = authData.users
+      const matchedUsers: UserData[] = authData.users
         .filter(user => user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
         .map(user => ({
           id: user.id,
@@ -122,8 +122,7 @@ const AdminUserGroups: React.FC = () => {
         // Get user mappings
         const { data: mappings, error: mappingError } = await supabase
           .from('user_mapping')
-          .select('auth_user_id, owc_user_id, name, email')
-          .in('auth_user_id', userIds);
+          .select('auth_user_id, owc_user_id, name, email');
           
         if (mappingError) throw mappingError;
         
@@ -133,8 +132,7 @@ const AdminUserGroups: React.FC = () => {
         if (owcUserIds.length > 0) {
           const { data: groupMappings, error: groupError } = await supabase
             .from('owc_user_usergroup_map')
-            .select('user_id, group_id')
-            .in('user_id', owcUserIds);
+            .select('user_id, group_id');
             
           if (groupError) throw groupError;
           
@@ -146,8 +144,7 @@ const AdminUserGroups: React.FC = () => {
           if (groupIds.length > 0) {
             const { data: groups, error: groupsError } = await supabase
               .from('owc_usergroups')
-              .select('id, title')
-              .in('id', groupIds);
+              .select('id, title');
               
             if (groupsError) throw groupsError;
             
@@ -426,4 +423,3 @@ const AdminUserGroups: React.FC = () => {
 };
 
 export default AdminUserGroups;
-
