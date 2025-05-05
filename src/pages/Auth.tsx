@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import LoginForm from "@/components/auth/LoginForm";
 import AuthHeader from "@/components/auth/AuthHeader";
 import { loginWithSupabaseAuth } from "@/services/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchRoleByEmail, saveRoleToSessionStorage, isAdminRole } from "@/utils/roleUtils";
+import { fetchRoleByEmail, saveRoleToSessionStorage, isAdminRole } from "@/utils/roles";
 
 const Auth = () => {
   const [email, setEmail] = useState("");

@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { fetchRoleByEmail, fetchRoleByAuthId, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roleUtils";
+import { fetchRoleByEmail, fetchRoleByAuthId, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roles";
 
 /**
  * Gets the user role from mapping tables

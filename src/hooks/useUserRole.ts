@@ -1,7 +1,6 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { fetchUserRoleComprehensive } from "@/services/auth";
-import { isAdminRole, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roleUtils";
+import { isAdminRole, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roles";
 
 export const useUserRole = () => {
   // Initialize from session storage if available
