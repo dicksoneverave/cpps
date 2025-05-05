@@ -20,8 +20,10 @@ export const useAuthState = () => {
       if (currentSession?.user) {
         // Directly set admin flag for administrator@gmail.com
         if (currentSession.user.email === "administrator@gmail.com") {
+          console.log("Setting admin flag for administrator@gmail.com");
           setIsAdmin(true);
         } else {
+          console.log("Fetching user role for:", currentSession.user.email);
           await fetchUserRole(currentSession.user.id, currentSession.user.email || "");
         }
       }
@@ -44,10 +46,12 @@ export const useAuthState = () => {
         if (newSession?.user) {
           // Directly set admin flag for administrator@gmail.com
           if (newSession.user.email === "administrator@gmail.com") {
+            console.log("Setting admin flag on auth state change for administrator@gmail.com");
             setIsAdmin(true);
           } else {
             // Use a timeout to avoid deadlocks in the Supabase auth state manager
             setTimeout(() => {
+              console.log("Fetching user role on auth state change:", newSession.user.email);
               fetchUserRole(newSession.user.id, newSession.user.email || "");
             }, 0);
           }

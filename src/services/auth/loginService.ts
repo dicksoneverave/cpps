@@ -21,6 +21,7 @@ export interface LoginResponse {
  */
 export const loginWithSupabaseAuth = async (email: string, password: string): Promise<LoginResponse> => {
   try {
+    console.log("Attempting authentication for:", email);
     // Check against users table
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -29,22 +30,28 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       .maybeSingle();
       
     if (userError || !userData) {
+      console.error("User lookup error:", userError);
       throw new Error("User not found. Please check your email and try again.");
     }
     
     // Verify with the password utility
     if (!verifyPassword(password, userData.password)) {
+      console.error("Password verification failed");
       throw new Error("Invalid email or password. Please try again.");
     }
     
+    console.log("User verified in custom users table:", email);
+    
     // Try to create a Supabase auth session
     try {
+      console.log("Attempting to create Supabase auth session");
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (!authError) {
+        console.log("Supabase auth session created successfully");
         return { 
           data: authData, 
           error: null,
@@ -60,6 +67,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
     }
     
     // Return success with the user data even if session creation failed
+    console.log("Returning successful login with custom user data");
     return { 
       data: null, 
       error: null,

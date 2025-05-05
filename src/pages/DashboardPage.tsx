@@ -63,12 +63,14 @@ const DashboardPage: React.FC = () => {
     if (!loading) {
       if (!user) {
         // Redirect to login if no user
+        console.log("No user found, redirecting to login");
         navigate("/login");
         return;
       }
       
       // Special case for administrator@gmail.com
       if (user.email === "administrator@gmail.com") {
+        console.log("Admin user found, redirecting to admin page");
         navigate("/admin");
         return;
       }

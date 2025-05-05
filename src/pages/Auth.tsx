@@ -18,9 +18,11 @@ const Auth = () => {
 
   useEffect(() => {
     const checkSession = async () => {
+      console.log("Checking for existing session...");
       const { data } = await supabase.auth.getSession();
       
       if (data.session) {
+        console.log("Found existing session, redirecting...");
         // Check if the user is an admin
         const userEmail = data.session.user.email;
         if (userEmail === "administrator@gmail.com") {
@@ -64,10 +66,8 @@ const Auth = () => {
           description: `Welcome back! Redirecting to your dashboard...`,
         });
         
-        // Add a short delay before redirect to allow for role fetching
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 500);
+        // Force navigation to dashboard immediately
+        navigate("/dashboard");
       } else {
         throw new Error("Failed to authenticate. Please try again.");
       }
