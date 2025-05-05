@@ -83,11 +83,10 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
     email: selectedUser.email
   };
   
-  // Use an explicit cast to any to bypass TypeScript's type checking on the database schema
-  // This is necessary because user_mapping is a view in Supabase's generated types
+  // Fix: Remove the type casting that's causing the infinite type instantiation
   const { error: newMappingError } = await supabase
-    .from('user_mapping' as any)
-    .insert([mappingData as any]);
+    .from('user_mapping')
+    .insert([mappingData]);
     
   if (newMappingError) throw newMappingError;
   
