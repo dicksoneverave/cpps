@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { assignAdministratorToAdminGroup } from "@/services/admin/assignAdministrator";
+import { assignAsOWCAdmin } from "@/services/admin/assignAdministrator";
 
 const AssignAdministratorButton = () => {
   const [loading, setLoading] = useState(false);
@@ -11,11 +11,20 @@ const AssignAdministratorButton = () => {
   const handleAssignAdmin = async () => {
     setLoading(true);
     try {
-      await assignAdministratorToAdminGroup();
-      toast({
-        title: "Success",
-        description: "Administrator user has been assigned to the admin group.",
-      });
+      // Use the "administrator@gmail.com" email as the administrator user
+      const adminEmail = "administrator@gmail.com";
+      
+      // Use the existing assignAsOWCAdmin function
+      const success = await assignAsOWCAdmin(adminEmail);
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Administrator user has been assigned to the admin group.",
+        });
+      } else {
+        throw new Error("Failed to assign administrator to admin group");
+      }
     } catch (error) {
       console.error("Error assigning admin:", error);
       toast({
