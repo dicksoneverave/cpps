@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -65,7 +64,7 @@ const AdminUserGroups: React.FC = () => {
     setSearchResults([]);
   };
 
-  // Handle form submission
+  // Handle form submission - fixed typing issue with assignUserToGroup
   const handleSubmit = async () => {
     if (!selectedUser || !selectedGroupId) {
       toast({
@@ -78,6 +77,7 @@ const AdminUserGroups: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      // Pass the UserData object directly - our updated service can handle it
       await assignUserToGroup(selectedUser, selectedGroupId);
       
       toast({

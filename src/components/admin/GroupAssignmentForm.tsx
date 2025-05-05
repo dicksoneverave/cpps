@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserGroup, UserData } from "@/types/adminTypes";
@@ -94,7 +93,7 @@ const GroupAssignmentForm: React.FC = () => {
     setSelectedUser(null);
   };
 
-  // Add user to group
+  // Add user to group - fixed typing issue with assignUserToGroup
   const handleAddToGroup = async () => {
     if (!selectedUser || !selectedGroupId) {
       toast({
@@ -107,6 +106,7 @@ const GroupAssignmentForm: React.FC = () => {
 
     setLoading(true);
     try {
+      // Pass the UserData object directly - our updated service can handle it
       await assignUserToGroup(selectedUser, selectedGroupId);
       
       // Update UI
@@ -130,7 +130,7 @@ const GroupAssignmentForm: React.FC = () => {
     }
   };
 
-  // Remove user from group
+  // Remove user from group - fixed typing issue with assignUserToGroup
   const handleRemoveFromGroup = async () => {
     if (!selectedGroupUser) {
       toast({
@@ -143,7 +143,7 @@ const GroupAssignmentForm: React.FC = () => {
 
     setLoading(true);
     try {
-      // For removal, we'll assign to a special "no group" value or another default group
+      // Pass the UserData object directly - our updated service can handle it
       await assignUserToGroup(selectedGroupUser, "0"); // Assuming "0" means no group
       
       // Update UI

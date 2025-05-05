@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserGroupAssignment } from "@/types/adminTypes";
+import { UserGroupAssignment, UserData } from "@/types/adminTypes";
 
 // Fetch user group assignments
 export const fetchUserGroupAssignments = async (): Promise<UserGroupAssignment[]> => {
@@ -72,15 +72,21 @@ export const deleteUserGroupAssignment = async (id: number): Promise<boolean> =>
   }
 };
 
-// Assign a user to a group
-export const assignUserToGroup = async (userId: string, groupId: number): Promise<boolean> => {
+// Assign a user to a group - fixed to properly handle UserData or string
+export const assignUserToGroup = async (user: UserData | string, groupId: string | number): Promise<boolean> => {
   try {
+    // Extract the user ID based on the input type
+    const userId = typeof user === 'string' ? user : user.id;
+    
+    // Convert groupId to number if it's a string
+    const numericGroupId = typeof groupId === 'string' ? parseInt(groupId, 10) : groupId;
+    
     // First, check if the assignment already exists
     const { data: existingAssignment, error: checkError } = await supabase
       .from('owc_user_usergroup_map')
       .select('*')
       .eq('auth_user_id', userId)
-      .eq('group_id', groupId)
+      .eq('group_id', numericGroupId)
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
@@ -95,7 +101,7 @@ export const assignUserToGroup = async (userId: string, groupId: number): Promis
     
     const { error } = await supabase
       .from('owc_user_usergroup_map')
-      .insert([{ auth_user_id: userId, group_id: groupId }]);
+      .insert([{ auth_user_id: userId, group_id: numericGroupId }]);
     
     if (error) {
       console.error("Error assigning user to group:", error);
@@ -105,49 +111,6 @@ export const assignUserToGroup = async (userId: string, groupId: number): Promis
     return true;
   } catch (error) {
     console.error("Error assigning user to group:", error);
-    return false;
-  }
-};
-
-// Simplified version to ensure consistent type handling
-export const assignUserToGroupSimplified = async (userId: string, groupId: number): Promise<boolean> => {
-  try {
-    // First, check if the assignment already exists
-    const { data: existingAssignment, error: checkError } = await supabase
-      .from('owc_user_usergroup_map')
-      .select('*')
-      .eq('auth_user_id', userId)
-      .eq('group_id', groupId)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking for existing assignment:', checkError);
-      return false;
-    }
-
-    // If assignment already exists, return success
-    if (existingAssignment) {
-      return true;
-    }
-
-    // Create a new assignment - ensure both types are correct
-    const numericGroupId = typeof groupId === 'string' ? parseInt(groupId, 10) : groupId;
-    
-    const { error: insertError } = await supabase
-      .from('owc_user_usergroup_map')
-      .insert({ 
-        auth_user_id: userId, 
-        group_id: numericGroupId 
-      });
-
-    if (insertError) {
-      console.error('Error assigning user to group:', insertError);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Exception in assignUserToGroup:', error);
     return false;
   }
 };

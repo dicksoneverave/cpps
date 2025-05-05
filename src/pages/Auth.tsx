@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -250,7 +249,7 @@ const Auth = () => {
             <LoginForm
               email={email}
               setEmail={setEmail}
-              password={setPassword}
+              password={password}
               setPassword={setPassword}
               handleLogin={handleLogin}
               loading={loading}
