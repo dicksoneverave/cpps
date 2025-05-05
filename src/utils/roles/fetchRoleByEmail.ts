@@ -35,32 +35,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     // If not a known email, look up in the database
     console.log("Checking database for email:", email);
     
-    // First try direct user_mapping join with usergroup
-    const { data, error } = await supabase
-      .from('user_mapping')
-      .select(`
-        owc_user_id,
-        owc_user_usergroup_map!inner(
-          group_id,
-          owc_usergroups!inner(title)
-        )
-      `)
-      .eq('email', email)
-      .maybeSingle();
-      
-    if (error) {
-      console.error("Error in user_mapping lookup:", error);
-    }
-    
-    if (data?.owc_user_usergroup_map?.owc_usergroups?.title) {
-      const role = data.owc_user_usergroup_map.owc_usergroups.title;
-      console.log("Found role via direct join:", role);
-      saveRoleToSessionStorage(role);
-      return role;
-    }
-    
-    // Fallback to original approach with separate queries if the direct join didn't work
-    console.log("Fallback: checking user_mapping for email:", email);
+    // First get the user mapping to find the owc_user_id
     const { data: mappingData, error: mappingError } = await supabase
       .from('user_mapping')
       .select('owc_user_id')
@@ -69,31 +44,33 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     
     if (mappingError) {
       console.error("Error in user_mapping lookup:", mappingError);
+      return null;
     }
     
     if (mappingData?.owc_user_id) {
-      console.log("Found mapping for email:", email, "OWC ID:", mappingData.owc_user_id);
+      const owcUserId = mappingData.owc_user_id;
+      console.log("Found mapping for email:", email, "OWC ID:", owcUserId);
       
-      // Fetch the user's group
+      // Then get the group from user_usergroup_map
       const { data: userGroupMapData, error: groupMapError } = await supabase
         .from('owc_user_usergroup_map')
         .select('group_id')
-        .eq('user_id', mappingData.owc_user_id)
+        .eq('user_id', owcUserId)
         .maybeSingle();
-        
+      
       if (groupMapError) {
         console.error("Error in owc_user_usergroup_map lookup:", groupMapError);
         return "User";
       }
       
       if (!userGroupMapData) {
-        console.log("No group mapping found for OWC user ID:", mappingData.owc_user_id);
+        console.log("No group mapping found for OWC user ID:", owcUserId);
         saveRoleToSessionStorage("User"); // Default role
         return "User";
       }
       
       const groupId = userGroupMapData.group_id;
-      console.log("Found group_id:", groupId, "for OWC user ID:", mappingData.owc_user_id);
+      console.log("Found group_id:", groupId, "for OWC user ID:", owcUserId);
       
       // Group ID mappings for common roles
       const groupIdMappings: Record<number, string> = {
