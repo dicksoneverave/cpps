@@ -35,7 +35,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     // If not a known email, look up in the database
     console.log("Checking database for email:", email);
     
-    // Get the auth user id from user_mapping table
+    // Step 1: Get the auth user id from user_mapping table
     const { data: userMappingData, error: userMappingError } = await supabase
       .from('user_mapping')
       .select('auth_user_id')
@@ -51,7 +51,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       const authUserId = userMappingData.auth_user_id;
       console.log("Found auth_user_id for email:", email, "auth_user_id:", authUserId);
       
-      // Get the group from owc_user_usergroup_map using auth_user_id
+      // Step 2: Get the group from owc_user_usergroup_map using auth_user_id
       const { data: groupMapData, error: groupMapError } = await supabase
         .from('owc_user_usergroup_map')
         .select('group_id')
@@ -72,7 +72,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       const groupId = groupMapData.group_id;
       console.log("Found group_id:", groupId, "for auth_user_id:", authUserId);
       
-      // Group ID mappings for common roles
+      // Step 3: Handle common role mappings directly
       const groupIdMappings: Record<number, string> = {
         1: "OWC Admin", 
         2: "Employer",
@@ -89,7 +89,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
         return roleName;
       }
       
-      // If not a known group ID, fetch the title from owc_usergroups
+      // Step 3 (alternative): If not a known group ID, fetch the title from owc_usergroups
       console.log("Fetching group title from owc_usergroups with group_id:", groupId);
       const { data: groupData, error: groupError } = await supabase
         .from('owc_usergroups')

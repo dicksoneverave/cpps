@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveRoleToSessionStorage } from "./sessionStorage";
 
 /**
- * Fetch user role using auth user ID mapping - directly joining with owc_usergroups
+ * Fetch user role using auth user ID mapping directly from owc_user_usergroup_map and owc_usergroups
  */
 export const fetchRoleByAuthId = async (userId: string): Promise<string | null> => {
   try {
@@ -14,8 +14,7 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
       return null;
     }
     
-    // Query the owc_user_usergroup_map table with auth_user_id
-    console.log("Querying owc_user_usergroup_map for auth_user_id:", userId);
+    // Step 1 & 2: Query the owc_user_usergroup_map table with auth_user_id
     const { data: userGroupData, error: userGroupError } = await supabase
       .from('owc_user_usergroup_map')
       .select('group_id')
@@ -32,7 +31,7 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
       return null;
     }
     
-    // Get the group title from owc_usergroups using the group_id
+    // Step 3: Get the group title from owc_usergroups using the group_id
     const groupId = userGroupData.group_id;
     console.log("Found group_id:", groupId, "for auth_user_id:", userId);
     

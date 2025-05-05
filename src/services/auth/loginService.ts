@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { verifyPassword, hashPassword } from "@/utils/passwordUtils";
 
@@ -23,7 +24,7 @@ interface CustomUserData {
   password: string;
   created_at: string;
   updated_at: string;
-  role?: string; // Add role property to fix the error
+  role?: string;
 }
 
 /**
@@ -107,12 +108,12 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
         console.log("Supabase auth session created successfully");
         sessionStorage.setItem('currentUserEmail', email);
         
-        // Create a copy of userData as CustomUserData to safely add the role property
+        // Create a copy of userData as CustomUserData
         const customUserData: CustomUserData = {
           ...userData,
         };
         
-        // With our improved database structure, we can directly get user's role from owc_user_usergroup_map
+        // Step 1 & 2: Get group_id from owc_user_usergroup_map using auth_user_id
         const { data: userGroupData } = await supabase
           .from('owc_user_usergroup_map')
           .select('group_id')
@@ -120,18 +121,17 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
           .maybeSingle();
         
         if (userGroupData?.group_id) {
-          // Get the group title
+          // Step 3: Get the group title from owc_usergroups
           const { data: groupData } = await supabase
             .from('owc_usergroups')
             .select('title')
             .eq('id', userGroupData.group_id)
             .maybeSingle();
             
-          const groupTitle = groupData?.title;
-          if (groupTitle) {
-            console.log("Found user role directly:", groupTitle);
-            customUserData.role = groupTitle;
-            sessionStorage.setItem('userRole', groupTitle);
+          if (groupData?.title) {
+            console.log("Found user role directly:", groupData.title);
+            customUserData.role = groupData.title;
+            sessionStorage.setItem('userRole', groupData.title);
           }
         }
         

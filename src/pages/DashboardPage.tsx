@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,7 +49,7 @@ const DashboardPage: React.FC = () => {
           
           // For all other users with sessions, check if we can directly get the role
           if (data.session.user.id) {
-            // Try to get the role directly from the updated owc_user_usergroup_map and owc_usergroups tables
+            // Step 1 & 2: Try to get the group_id from owc_user_usergroup_map 
             const { data: userGroupData } = await supabase
               .from('owc_user_usergroup_map')
               .select('group_id')
@@ -58,7 +59,7 @@ const DashboardPage: React.FC = () => {
             if (userGroupData?.group_id) {
               const groupId = userGroupData.group_id;
               
-              // Get the group title
+              // Step 3: Get the group title from owc_usergroups
               const { data: groupData } = await supabase
                 .from('owc_usergroups')
                 .select('title')
@@ -115,7 +116,7 @@ const DashboardPage: React.FC = () => {
           if (email && email !== "administrator@gmail.com") {
             console.log("No role found in context or session, fetching directly...");
             
-            // Try the direct approach first using auth_user_id in owc_user_usergroup_map
+            // Step 1 & 2: Try the direct approach first using auth_user_id in owc_user_usergroup_map
             if (userId) {
               // Get the group_id from owc_user_usergroup_map
               const { data: userGroupData } = await supabase
@@ -127,7 +128,7 @@ const DashboardPage: React.FC = () => {
               if (userGroupData?.group_id) {
                 const groupId = userGroupData.group_id;
                 
-                // Get the group title
+                // Step 3: Get the group title from owc_usergroups
                 const { data: groupData } = await supabase
                   .from('owc_usergroups')
                   .select('title')
