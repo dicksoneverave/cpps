@@ -4,6 +4,7 @@ import { fetchRoleByEmail, fetchRoleByAuthId, getRoleFromSessionStorage, saveRol
 
 /**
  * Gets the user role directly from owc_user_usergroup_map using auth_user_id
+ * and joining with owc_usergroups
  */
 export const getUserRoleFromMapping = async (userId: string): Promise<string | null> => {
   try {
@@ -14,58 +15,35 @@ export const getUserRoleFromMapping = async (userId: string): Promise<string | n
       return null;
     }
     
-    // Now we can directly query the owc_user_usergroup_map table with auth_user_id
-    const { data: userGroupMapData, error: groupMapError } = await supabase
+    // Query with a join between owc_user_usergroup_map and owc_usergroups
+    const { data: userRoleData, error: userRoleError } = await supabase
       .from('owc_user_usergroup_map')
       .select(`
         group_id,
-        owc_usergroups:owc_usergroups(title)
+        owc_usergroups!inner(title)
       `)
       .eq('auth_user_id', userId)
       .maybeSingle();
       
-    if (groupMapError) {
-      console.error("Error in direct user group mapping lookup:", groupMapError);
+    if (userRoleError) {
+      console.error("Error in user role mapping lookup:", userRoleError);
       return null;
     }
     
-    if (!userGroupMapData) {
-      console.log("No direct group mapping found for auth_user_id:", userId);
+    if (!userRoleData) {
+      console.log("No role mapping found for auth_user_id:", userId);
       return null;
     }
     
-    if (userGroupMapData?.owc_usergroups) {
-      const groupData = userGroupMapData.owc_usergroups as unknown as { title?: string };
-      if (groupData?.title) {
-        console.log("Found user role directly:", groupData.title);
-        saveRoleToSessionStorage(groupData.title);
-        return groupData.title;
-      }
+    if (userRoleData.owc_usergroups?.title) {
+      const roleTitle = userRoleData.owc_usergroups.title;
+      console.log("Found role:", roleTitle, "for user ID:", userId);
+      saveRoleToSessionStorage(roleTitle);
+      return roleTitle;
     }
     
-    // Fallback to querying the group title separately
-    const groupId = userGroupMapData.group_id;
-    console.log("Found group_id:", groupId, "directly for auth_user_id:", userId);
-    
-    const { data: groupData, error: groupError } = await supabase
-      .from('owc_usergroups')
-      .select('title')
-      .eq('id', groupId)
-      .maybeSingle();
-    
-    if (groupError) {
-      console.error("Error in user group title lookup:", groupError);
-      return null;
-    }
-    
-    if (!groupData?.title) {
-      console.log("No group title found for group_id:", groupId);
-      return null;
-    }
-    
-    console.log("Found user group:", groupData.title, "for user ID:", userId);
-    saveRoleToSessionStorage(groupData.title);
-    return groupData.title;
+    console.log("No role title found for user ID:", userId);
+    return null;
   } catch (error) {
     console.error("Error getting user role from mapping:", error);
     return null;
@@ -113,12 +91,12 @@ export const fetchUserRoleComprehensive = async (userId: string, email: string):
       }
     }
     
-    // Fallback to auth user id legacy mapping
+    // Fallback to legacy auth user id mapping
     if (userId) {
       console.log("Trying legacy role lookup with auth_user_id:", userId);
       const authIdBasedRole = await fetchRoleByAuthId(userId);
       if (authIdBasedRole) {
-        console.log("Found role via legacy auth ID mapping:", authIdBasedRole);
+        console.log("Found role via auth ID mapping:", authIdBasedRole);
         saveRoleToSessionStorage(authIdBasedRole);
         return authIdBasedRole;
       }

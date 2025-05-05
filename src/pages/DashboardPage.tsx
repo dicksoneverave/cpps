@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,17 +54,17 @@ const DashboardPage: React.FC = () => {
               .from('owc_user_usergroup_map')
               .select(`
                 group_id,
-                owc_usergroups:owc_usergroups(title)
+                owc_usergroups!inner(title)
               `)
               .eq('auth_user_id', data.session.user.id)
               .maybeSingle();
               
             if (userGroupData?.owc_usergroups) {
-              const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
-              if (groupData?.title) {
-                console.log("Found user role directly:", groupData.title);
-                setDisplayRole(groupData.title);
-                saveRoleToSessionStorage(groupData.title);
+              const groupTitle = userGroupData.owc_usergroups.title;
+              if (groupTitle) {
+                console.log("Found user role directly:", groupTitle);
+                setDisplayRole(groupTitle);
+                saveRoleToSessionStorage(groupTitle);
               }
             }
           }
@@ -116,17 +117,17 @@ const DashboardPage: React.FC = () => {
                 .from('owc_user_usergroup_map')
                 .select(`
                   group_id,
-                  owc_usergroups:owc_usergroups(title)
+                  owc_usergroups!inner(title)
                 `)
                 .eq('auth_user_id', userId)
                 .maybeSingle();
                 
               if (userGroupData?.owc_usergroups) {
-                const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
-                if (groupData?.title) {
-                  console.log("Found user role directly:", groupData.title);
-                  setDisplayRole(groupData.title);
-                  saveRoleToSessionStorage(groupData.title);
+                const groupTitle = userGroupData.owc_usergroups.title;
+                if (groupTitle) {
+                  console.log("Found user role directly:", groupTitle);
+                  setDisplayRole(groupTitle);
+                  saveRoleToSessionStorage(groupTitle);
                   setIsCheckingRole(false);
                   return;
                 }
