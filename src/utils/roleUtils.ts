@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const isAdminRole = (role: string | null): boolean => {
   if (!role) return false;
-  const adminRoles = ["OWC Admin", "owcadmin", "OWCAdminMenu"];
+  const adminRoles = ["OWC Admin", "owcadmin", "OWCAdminMenu", "admin"];
   return adminRoles.some(adminRole => 
     role.toLowerCase().includes(adminRole.toLowerCase())
   );
@@ -56,7 +56,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
         
       if (groupMapError) {
         console.error("Error in owc_user_usergroup_map lookup:", groupMapError);
-        return null;
+        return "User";
       }
       
       if (!userGroupMapData) {
@@ -95,7 +95,64 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     }
     
     console.log("No direct mapping found in user_mapping for email:", email);
-    saveRoleToSessionStorage("User"); // Default role
+    console.log("Attempting direct lookup in owc_users for:", email);
+    
+    // Try direct lookup in owc_users table
+    const { data: owcUserData, error: owcUserError } = await supabase
+      .from('owc_users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    
+    if (owcUserError) {
+      console.error("Error in owc_users lookup:", owcUserError);
+    }
+    
+    if (owcUserData?.id) {
+      console.log("Found user in owc_users with ID:", owcUserData.id);
+      
+      // Fetch the user's group from user_usergroup_map
+      const { data: groupMapData, error: groupMapError } = await supabase
+        .from('owc_user_usergroup_map')
+        .select('group_id')
+        .eq('user_id', owcUserData.id)
+        .maybeSingle();
+      
+      if (groupMapError) {
+        console.error("Error in direct group map lookup:", groupMapError);
+        saveRoleToSessionStorage("User");
+        return "User";
+      }
+      
+      if (!groupMapData) {
+        console.log("No direct group mapping found for OWC user ID:", owcUserData.id);
+        saveRoleToSessionStorage("User");
+        return "User";
+      }
+      
+      // Get the group title
+      const { data: groupData, error: groupError } = await supabase
+        .from('owc_usergroups')
+        .select('title')
+        .eq('id', groupMapData.group_id)
+        .maybeSingle();
+      
+      if (groupError) {
+        console.error("Error in direct group title lookup:", groupError);
+        saveRoleToSessionStorage("User");
+        return "User";
+      }
+      
+      if (groupData?.title) {
+        console.log("Found direct group title:", groupData.title);
+        saveRoleToSessionStorage(groupData.title);
+        return groupData.title;
+      }
+    }
+    
+    // If no role was found, save default and return
+    console.log("No role mapping found for email:", email);
+    saveRoleToSessionStorage("User");
     return "User";
   } catch (e) {
     console.error("Error in email-based role lookup:", e);

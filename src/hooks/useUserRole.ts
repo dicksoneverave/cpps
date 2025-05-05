@@ -28,8 +28,9 @@ export const useUserRole = () => {
       // Special case for administrator@gmail.com
       if (email === "administrator@gmail.com") {
         console.log("Setting admin role for administrator@gmail.com");
-        setUserRole("OWC Admin");
-        saveRoleToSessionStorage("OWC Admin");
+        const adminRole = "OWC Admin";
+        setUserRole(adminRole);
+        saveRoleToSessionStorage(adminRole);
         setIsAdmin(true);
         return;
       }
@@ -48,16 +49,18 @@ export const useUserRole = () => {
       const role = await fetchUserRoleComprehensive(userId, email);
       console.log("Fetched role result:", role);
       
-      setUserRole(role);
-      saveRoleToSessionStorage(role || "User");
+      const effectiveRole = role || "User"; // Default to "User" if no role found
+      setUserRole(effectiveRole);
+      saveRoleToSessionStorage(effectiveRole);
       
       // Update admin status based on role
-      const adminStatus = isAdminRole(role);
-      console.log("Setting admin status:", adminStatus, "based on role:", role);
+      const adminStatus = isAdminRole(effectiveRole);
+      console.log("Setting admin status:", adminStatus, "based on role:", effectiveRole);
       setIsAdmin(adminStatus);
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
-      setUserRole("User"); // Default role if all else fails
+      // Default role if all else fails
+      setUserRole("User"); 
       saveRoleToSessionStorage("User");
       setIsAdmin(false);
     }

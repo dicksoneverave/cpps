@@ -7,7 +7,7 @@ import LoginForm from "@/components/auth/LoginForm";
 import AuthHeader from "@/components/auth/AuthHeader";
 import { loginWithSupabaseAuth } from "@/services/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchRoleByEmail, saveRoleToSessionStorage } from "@/utils/roleUtils";
+import { fetchRoleByEmail, saveRoleToSessionStorage, isAdminRole } from "@/utils/roleUtils";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -24,8 +24,11 @@ const Auth = () => {
       const { data } = await supabase.auth.getSession();
       
       if (data.session) {
-        console.log("Found existing session, user is already authenticated");
+        console.log("Found existing session, user is already authenticated:", data.session.user.email);
         setIsAuthenticated(true);
+        
+        // Store the email for reference
+        sessionStorage.setItem('currentUserEmail', data.session.user.email || "");
       }
     };
     
@@ -36,10 +39,12 @@ const Auth = () => {
     // Redirect if user is authenticated
     if (isAuthenticated) {
       console.log("User is authenticated, redirecting to appropriate dashboard");
-      // Check if the user is an administrator
-      const storedRole = sessionStorage.getItem('userRole');
       
-      if (email === "administrator@gmail.com" || (storedRole && storedRole.toLowerCase().includes('admin'))) {
+      // Get role from session storage or check email directly
+      const storedRole = sessionStorage.getItem('userRole');
+      const currentEmail = sessionStorage.getItem('currentUserEmail') || email;
+      
+      if (currentEmail === "administrator@gmail.com" || (storedRole && isAdminRole(storedRole))) {
         console.log("Redirecting admin to /admin");
         navigate("/admin", { replace: true });
       } else {
@@ -63,10 +68,13 @@ const Auth = () => {
         const userData = response.customUser || response.data?.user;
         console.log("Login successful for:", userData?.email || userData?.name);
         
+        // Store the current user's email
+        sessionStorage.setItem('currentUserEmail', email);
+        
         // Special handling for administrator
         if (email === "administrator@gmail.com") {
           toast({
-            title: "Login successful",
+            title: "Admin Login Successful",
             description: "Welcome back, Administrator!",
           });
           
@@ -77,16 +85,13 @@ const Auth = () => {
         }
         
         // For regular users, fetch their role
+        console.log("Fetching role for regular user:", email);
         const userRole = await fetchRoleByEmail(email);
         console.log("Fetched user role:", userRole);
         
-        if (userRole) {
-          saveRoleToSessionStorage(userRole);
-        }
-        
         // Success message for all other users
         toast({
-          title: "Login successful",
+          title: "Login Successful",
           description: `Welcome back! Redirecting to your dashboard...`,
         });
         

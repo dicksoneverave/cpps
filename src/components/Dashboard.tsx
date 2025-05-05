@@ -3,6 +3,11 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DefaultDashboard from "./dashboards/DefaultDashboard";
 import DynamicDashboard from "./dashboards/DynamicDashboard";
+import AdminDashboard from "./dashboards/AdminDashboard";
+import EmployerDashboard from "./dashboards/EmployerDashboard";
+import RegistrarDashboard from "./dashboards/RegistrarDashboard";
+import CommissionerDashboard from "./dashboards/CommissionerDashboard";
+import PaymentDashboard from "./dashboards/PaymentDashboard";
 import ClaimsChart from "./dashboards/ClaimsCharts";
 
 interface DashboardProps {
@@ -39,7 +44,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     setDeathClaims(mockDeathData);
   }, []);
 
-  // Render role-specific dashboard
+  // Improved rendering of role-specific dashboards
   const renderRoleDashboard = () => {
     if (!user || !userRole) {
       console.log("No user or role found, showing default dashboard");
@@ -47,7 +52,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     }
     
     console.log("Rendering dashboard for role:", userRole);
-    // If there's a valid userRole, use the DynamicDashboard
+    
+    // Use specific dashboards for common roles
+    const lowerCaseRole = userRole.toLowerCase();
+    
+    if (lowerCaseRole.includes('admin')) {
+      return <AdminDashboard />;
+    } else if (lowerCaseRole.includes('employer')) {
+      return <EmployerDashboard />;
+    } else if (lowerCaseRole.includes('registrar')) {
+      return <RegistrarDashboard />;
+    } else if (lowerCaseRole.includes('commissioner') || lowerCaseRole.includes('chief commissioner')) {
+      return <CommissionerDashboard />;
+    } else if (lowerCaseRole.includes('payment')) {
+      return <PaymentDashboard />;
+    }
+    
+    // If no specific dashboard found, use the DynamicDashboard
     return <DynamicDashboard groupTitle={userRole} />;
   };
 

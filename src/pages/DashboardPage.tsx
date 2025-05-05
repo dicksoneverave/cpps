@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,21 +31,35 @@ const DashboardPage: React.FC = () => {
       try {
         console.log("Checking session in DashboardPage...");
         const { data } = await supabase.auth.getSession();
+        const storedEmail = sessionStorage.getItem('currentUserEmail');
         
-        if (!data.session && !sessionStorage.getItem('userRole')) {
+        if (!data.session && !storedRole && !storedEmail) {
           console.log("No session or role found in DashboardPage, redirecting to login");
           navigate("/login", { replace: true });
           return;
         } else if (data.session) {
           console.log("Session found in DashboardPage:", data.session.user.email);
+          
           // Special case for administrator@gmail.com
           if (data.session.user.email === "administrator@gmail.com") {
             console.log("Admin user found, redirecting to admin page");
             navigate("/admin", { replace: true });
             return;
           }
-          // Otherwise, we're good to stay on dashboard
-        } else {
+          
+          // For all other users with sessions, we can stay on dashboard
+          console.log("Regular user with session found, allowing dashboard access");
+        } else if (storedEmail) {
+          console.log("No Supabase session but found email in sessionStorage:", storedEmail);
+          
+          if (storedEmail === "administrator@gmail.com") {
+            console.log("Admin email found in session storage, redirecting to admin page");
+            navigate("/admin", { replace: true });
+            return;
+          }
+          
+          console.log("Regular user email found in session storage, allowing dashboard access");
+        } else if (storedRole) {
           console.log("No Supabase session but found role in sessionStorage, allowing dashboard access");
         }
       } catch (error) {
@@ -59,7 +74,10 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     const checkUserRole = async () => {
-      if (!user && !getRoleFromSessionStorage()) return;
+      if (!user && !getRoleFromSessionStorage() && !sessionStorage.getItem('currentUserEmail')) {
+        console.log("No user, role, or email found, skipping role check");
+        return;
+      }
       
       setIsCheckingRole(true);
       
