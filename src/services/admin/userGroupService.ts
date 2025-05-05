@@ -30,6 +30,8 @@ export const getDashboardComponentByGroupTitle = (groupTitle: string | null): st
     return "AdminDashboard";
   } else if (lowerTitle.includes('employer')) {
     return "EmployerDashboard";
+  } else if (lowerTitle.includes('deputy registrar')) {
+    return "DeputyRegistrarDashboard";
   } else if (lowerTitle.includes('registrar')) {
     return "RegistrarDashboard";
   } else if (lowerTitle.includes('commissioner')) {

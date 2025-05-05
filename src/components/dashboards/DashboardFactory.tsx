@@ -4,6 +4,7 @@ import DefaultDashboard from "./DefaultDashboard";
 import AdminDashboard from "./AdminDashboard";
 import EmployerDashboard from "./EmployerDashboard";
 import RegistrarDashboard from "./RegistrarDashboard";
+import DeputyRegistrarDashboard from "./DeputyRegistrarDashboard";
 import CommissionerDashboard from "./CommissionerDashboard";
 import PaymentDashboard from "./PaymentDashboard";
 import ProvincialClaimsOfficerDashboard from "./ProvincialClaimsOfficerDashboard";
@@ -32,6 +33,8 @@ const DashboardFactory: React.FC<DashboardFactoryProps> = ({ userRole }) => {
       return <AdminDashboard />;
     case "EmployerDashboard":
       return <EmployerDashboard />;
+    case "DeputyRegistrarDashboard":
+      return <DeputyRegistrarDashboard />;
     case "RegistrarDashboard":
       return <RegistrarDashboard />;
     case "CommissionerDashboard":

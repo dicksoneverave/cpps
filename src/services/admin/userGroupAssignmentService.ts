@@ -1,153 +1,191 @@
-
+// src/services/admin/userGroupAssignmentService.ts
 import { supabase } from "@/integrations/supabase/client";
-import { UserData } from "@/types/adminTypes";
+import { UserGroupAssignment } from "@/types/adminTypes";
 
-// Assign user to group
-export const assignUserToGroup = async (
-  selectedUser: UserData, 
-  selectedGroupId: string
-): Promise<void> => {
+// Fetch user group assignments
+export const fetchUserGroupAssignments = async (): Promise<UserGroupAssignment[]> => {
   try {
-    // First get owc_user_id from user_mapping
-    const { data: mapping, error: mappingError } = await supabase
-      .from('user_mapping')
-      .select('owc_user_id')
-      .eq('auth_user_id', selectedUser.id)
-      .maybeSingle();
-      
-    if (mappingError) throw mappingError;
+    const { data, error } = await supabase
+      .from('owc_user_usergroup_map')
+      .select('*');
     
-    let owcUserId = mapping?.owc_user_id;
+    if (error) throw error;
     
-    // If mapping doesn't exist, create an OWC user entry and mapping
-    if (!owcUserId) {
-      owcUserId = await createOwcUserAndMapping(selectedUser);
-    }
-
-    // Update or create group mapping
-    await updateUserGroupMapping(owcUserId, selectedGroupId);
-    
+    return data || [];
   } catch (error) {
-    console.error("Error assigning user to group:", error);
+    console.error("Error fetching user group assignments:", error);
     throw error;
   }
 };
 
-// Helper function to create OWC user and mapping
-async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> {
-  // Generate a random username based on email
-  const username = selectedUser.email?.split('@')[0] + '_' + Math.floor(Math.random() * 10000);
-  
-  if (!username || !selectedUser.email) {
-    throw new Error("Invalid email or username");
-  }
-  
-  // Insert into owc_users using RPC to handle the ID generation
-  const { data: newUserData, error: rpcError } = await supabase.rpc('create_owc_user', {
-    p_name: selectedUser.name || selectedUser.email.split('@')[0],
-    p_username: username,
-    p_email: selectedUser.email,
-    p_password: '',
-    p_block: '0',
-    p_send_email: '0',
-    p_register_date: new Date().toISOString(),
-    p_require_reset: '0',
-    p_auth_provider: 'supabase'
-  });
-  
-  if (rpcError) {
-    console.error("RPC error:", rpcError);
-    throw new Error(`Failed to create user: ${rpcError.message}`);
-  }
-  
-  const owcUserId = newUserData;
-  console.log("Created new OWC user with ID:", owcUserId);
-  
-  if (!owcUserId) {
-    throw new Error("Failed to get new user ID");
-  }
-  
-  // Define the mapping data
-  const mappingData = {
-    auth_user_id: selectedUser.id,
-    owc_user_id: owcUserId,
-    name: selectedUser.name || selectedUser.email.split('@')[0],
-    email: selectedUser.email
-  };
-  
-  console.log("Creating user mapping with data:", mappingData);
-  
-  // Since user_mapping is a view, we need to handle it using a different approach
+// Add a new user group assignment
+export const addUserGroupAssignment = async (assignment: UserGroupAssignment): Promise<UserGroupAssignment> => {
   try {
-    // Use raw SQL query to insert into the user_mapping view
-    const { error } = await supabase.rpc('create_owc_user', {
-      p_name: mappingData.name,
-      p_username: username,
-      p_email: mappingData.email,
-      p_password: '',
-      p_block: '0',
-      p_send_email: '0',
-      p_register_date: new Date().toISOString(),
-      p_require_reset: '0',
-      p_auth_provider: 'supabase'
-    });
+    const { data, error } = await supabase
+      .from('owc_user_usergroup_map')
+      .insert([assignment])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data as UserGroupAssignment;
+  } catch (error) {
+    console.error("Error adding user group assignment:", error);
+    throw error;
+  }
+};
+
+// Update an existing user group assignment
+export const updateUserGroupAssignment = async (id: number, updates: Partial<UserGroupAssignment>): Promise<UserGroupAssignment | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('owc_user_usergroup_map')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return data as UserGroupAssignment;
+  } catch (error) {
+    console.error("Error updating user group assignment:", error);
+    throw error;
+    return null;
+  }
+};
+
+// Delete a user group assignment
+export const deleteUserGroupAssignment = async (id: number): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('owc_user_usergroup_map')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting user group assignment:", error);
+    return false;
+  }
+};
+
+// Assign a user to a group
+export const assignUserToGroup = async (userId: string, groupId: number): Promise<boolean> => {
+  try {
+    // First, check if the assignment already exists
+    const { data: existingAssignment, error: checkError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select('*')
+      .eq('auth_user_id', userId)
+      .eq('group_id', groupId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing assignment:', checkError);
+      return false;
+    }
+
+    // If assignment already exists, return success
+    if (existingAssignment) {
+      return true;
+    }
+    
+    const { data, error } = await supabase
+      .from('owc_user_usergroup_map')
+      .insert([{ auth_user_id: userId, group_id: groupId }]);
     
     if (error) {
-      console.error("Error creating user mapping:", error);
-      throw error;
-    }
-  } catch (err) {
-    console.error("Error with user mapping insertion:", err);
-    throw new Error(`Failed to create user mapping: ${err instanceof Error ? err.message : String(err)}`);
-  }
-  
-  return owcUserId;
-}
-
-// Helper function to update or create user group mapping
-async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string): Promise<void> {
-  try {
-    // Check if group mapping already exists
-    const { data: existingMapping, error: existingError } = await supabase
-      .from('owc_user_usergroup_map')
-      .select()
-      .eq('user_id', owcUserId)
-      .maybeSingle();
-      
-    if (existingError) {
-      console.error("Error checking existing mapping:", existingError);
-      throw existingError;
+      console.error("Error assigning user to group:", error);
+      return false;
     }
     
-    if (existingMapping) {
-      // Update existing mapping
-      const { error: updateError } = await supabase
-        .from('owc_user_usergroup_map')
-        .update({ group_id: parseInt(selectedGroupId) })
-        .eq('user_id', owcUserId);
-        
-      if (updateError) {
-        console.error("Error updating user group mapping:", updateError);
-        throw updateError;
-      }
-    } else {
-      // Insert new mapping - explicitly define the insert data to avoid type inference issues
-      const insertData = {
-        user_id: owcUserId,
-        group_id: parseInt(selectedGroupId)
-      };
-      
-      const { error: insertError } = await supabase
-        .from('owc_user_usergroup_map')
-        .insert(insertData);
-        
-      if (insertError) {
-        console.error("Error inserting user group mapping:", insertError);
-        throw insertError;
-      }
-    }
+    return true;
   } catch (error) {
-    console.error("Error in updateUserGroupMapping:", error);
-    throw new Error(`Failed to update user group mapping: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("Error assigning user to group:", error);
+    return false;
   }
-}
+};
+
+const assignUserToGroupSimplified = async (userId: string, groupId: number | string): Promise<boolean> => {
+  try {
+    // First, check if the assignment already exists
+    const { data: existingAssignment, error: checkError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select('*')
+      .eq('auth_user_id', userId)
+      .eq('group_id', groupId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing assignment:', checkError);
+      return false;
+    }
+
+    // If assignment already exists, return success
+    if (existingAssignment) {
+      return true;
+    }
+
+    // Create a new assignment with a simpler insert operation
+    const { error: insertError } = await supabase
+      .from('owc_user_usergroup_map')
+      .insert({ 
+        auth_user_id: userId, 
+        group_id: groupId 
+      });
+
+    if (insertError) {
+      console.error('Error assigning user to group:', insertError);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Exception in assignUserToGroup:', error);
+    return false;
+  }
+};
+
+// Unassign a user from a group
+export const unassignUserFromGroup = async (userId: string, groupId: number): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('owc_user_usergroup_map')
+      .delete()
+      .match({ auth_user_id: userId, group_id: groupId });
+    
+    if (error) {
+      console.error("Error unassigning user from group:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error unassigning user from group:", error);
+    return false;
+  }
+};
+
+// Get users by group ID
+export const getUsersByGroupId = async (groupId: number): Promise<any[]> => {
+    try {
+        const { data, error } = await supabase
+            .from('owc_user_usergroup_map')
+            .select('auth_user_id')
+            .eq('group_id', groupId);
+
+        if (error) {
+            console.error("Error fetching users by group ID:", error);
+            return [];
+        }
+
+        return data || [];
+    } catch (error) {
+        console.error("Error fetching users by group ID:", error);
+        return [];
+    }
+};
