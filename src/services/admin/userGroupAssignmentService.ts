@@ -77,14 +77,15 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   
   console.log("Creating user mapping with data:", mappingData);
   
-  // Since user_mapping might be a view, we need to handle this differently
-  // Use a custom insert approach that works with the current DB structure
+  // Since user_mapping might be a view, insert directly with proper formatting
   try {
-    // Using raw SQL execution via RPC since direct insert into views is problematic
-    const { error } = await supabase.rpc('insert_user_mapping', mappingData);
+    // Direct insert with single object (not array)
+    const { error } = await supabase
+      .from('user_mapping')
+      .insert(mappingData);
     
     if (error) {
-      console.error("Error creating user mapping via RPC:", error);
+      console.error("Error creating user mapping:", error);
       throw error;
     }
   } catch (err) {
@@ -122,7 +123,7 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
         throw updateError;
       }
     } else {
-      // Insert new mapping
+      // Insert new mapping - use object directly, not in array
       const { error: insertError } = await supabase
         .from('owc_user_usergroup_map')
         .insert({
