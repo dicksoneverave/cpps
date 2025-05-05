@@ -77,14 +77,19 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   
   console.log("Creating user mapping with data:", mappingData);
   
-  // Insert directly into the user_mapping table instead of using an RPC
-  const { error: newMappingError } = await supabase
-    .from('user_mapping')
-    .insert([mappingData]);
+  // Since user_mapping might be a view, we need to handle this differently
+  // Use a custom insert approach that works with the current DB structure
+  try {
+    // Using raw SQL execution via RPC since direct insert into views is problematic
+    const { error } = await supabase.rpc('insert_user_mapping', mappingData);
     
-  if (newMappingError) {
-    console.error("Error creating user mapping:", newMappingError);
-    throw newMappingError;
+    if (error) {
+      console.error("Error creating user mapping via RPC:", error);
+      throw error;
+    }
+  } catch (err) {
+    console.error("Error with user mapping insertion:", err);
+    throw new Error(`Failed to create user mapping: ${err instanceof Error ? err.message : String(err)}`);
   }
   
   return owcUserId;
@@ -92,41 +97,46 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
 
 // Helper function to update or create user group mapping
 async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string): Promise<void> {
-  // Check if group mapping already exists
-  const { data: existingMapping, error: existingError } = await supabase
-    .from('owc_user_usergroup_map')
-    .select()
-    .eq('user_id', owcUserId)
-    .maybeSingle();
+  try {
+    // Check if group mapping already exists
+    const { data: existingMapping, error: existingError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select()
+      .eq('user_id', owcUserId)
+      .maybeSingle();
+      
+    if (existingError) {
+      console.error("Error checking existing mapping:", existingError);
+      throw existingError;
+    }
     
-  if (existingError) {
-    console.error("Error checking existing mapping:", existingError);
-    throw existingError;
-  }
-  
-  if (existingMapping) {
-    // Update existing mapping
-    const { error: updateError } = await supabase
-      .from('owc_user_usergroup_map')
-      .update({ group_id: parseInt(selectedGroupId) })
-      .eq('user_id', owcUserId);
-      
-    if (updateError) {
-      console.error("Error updating user group mapping:", updateError);
-      throw updateError;
+    if (existingMapping) {
+      // Update existing mapping
+      const { error: updateError } = await supabase
+        .from('owc_user_usergroup_map')
+        .update({ group_id: parseInt(selectedGroupId) })
+        .eq('user_id', owcUserId);
+        
+      if (updateError) {
+        console.error("Error updating user group mapping:", updateError);
+        throw updateError;
+      }
+    } else {
+      // Insert new mapping
+      const { error: insertError } = await supabase
+        .from('owc_user_usergroup_map')
+        .insert({
+          user_id: owcUserId,
+          group_id: parseInt(selectedGroupId)
+        });
+        
+      if (insertError) {
+        console.error("Error inserting user group mapping:", insertError);
+        throw insertError;
+      }
     }
-  } else {
-    // Insert new mapping
-    const { error: insertError } = await supabase
-      .from('owc_user_usergroup_map')
-      .insert([{
-        user_id: owcUserId,
-        group_id: parseInt(selectedGroupId)
-      }]);
-      
-    if (insertError) {
-      console.error("Error inserting user group mapping:", insertError);
-      throw insertError;
-    }
+  } catch (error) {
+    console.error("Error in updateUserGroupMapping:", error);
+    throw new Error(`Failed to update user group mapping: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
