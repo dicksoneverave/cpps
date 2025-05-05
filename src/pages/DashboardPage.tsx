@@ -50,21 +50,35 @@ const DashboardPage: React.FC = () => {
   }, [user, userRole, loading, displayRole]);
   
   useEffect(() => {
-    if (!loading && !isCheckingRole) {
-      if (!user) {
-        // Redirect to login if no user
-        console.log("No user found, redirecting to login");
-        navigate("/login");
+    // Check if session exists to prevent redirecting too early
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      
+      if (!data.session) {
+        // No session means not logged in
+        console.log("No session found, redirecting to login");
+        navigate("/login", { replace: true });
         return;
       }
       
-      // Special case for administrator@gmail.com
-      if (user.email === "administrator@gmail.com") {
-        console.log("Admin user found, redirecting to admin page");
-        navigate("/admin");
-        return;
+      if (!loading && !isCheckingRole) {
+        if (!user) {
+          // Double-check: redirect to login if no user
+          console.log("No user found, redirecting to login");
+          navigate("/login", { replace: true });
+          return;
+        }
+        
+        // Special case for administrator@gmail.com
+        if (user.email === "administrator@gmail.com") {
+          console.log("Admin user found, redirecting to admin page");
+          navigate("/admin", { replace: true });
+          return;
+        }
       }
-    }
+    };
+    
+    checkSession();
   }, [user, loading, navigate, isCheckingRole]);
 
   if (loading || isCheckingRole) {

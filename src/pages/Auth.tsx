@@ -30,7 +30,8 @@ const Auth = () => {
           navigate("/admin");
           return;
         }
-        navigate("/dashboard");
+        // Force redirect to dashboard for all other authenticated users
+        navigate("/dashboard", { replace: true });
       }
     };
     
@@ -60,7 +61,7 @@ const Auth = () => {
           
           // Store the admin role
           saveRoleToSessionStorage("OWC Admin");
-          navigate("/admin");
+          navigate("/admin", { replace: true });
           return;
         }
         
@@ -78,8 +79,8 @@ const Auth = () => {
           description: `Welcome back! Redirecting to your dashboard...`,
         });
         
-        // Force navigation to dashboard immediately
-        navigate("/dashboard");
+        // Force navigation to dashboard immediately with replace:true
+        navigate("/dashboard", { replace: true });
       } else {
         throw new Error("Failed to authenticate. Please try again.");
       }

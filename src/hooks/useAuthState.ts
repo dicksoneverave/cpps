@@ -12,8 +12,10 @@ export const useAuthState = () => {
 
   const initializeAuth = useCallback(async () => {
     try {
+      console.log("Initializing auth...");
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       console.log("Initial session check:", currentSession?.user?.email);
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -35,10 +37,13 @@ export const useAuthState = () => {
   }, [fetchUserRole, setIsAdmin]);
 
   useEffect(() => {
-    // Set up the auth state listener first
+    console.log("Setting up auth state listeners...");
+    
+    // Set up the auth state listener first to avoid missing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log("Auth state changed:", event, newSession?.user?.email);
+        
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
@@ -66,7 +71,10 @@ export const useAuthState = () => {
     initializeAuth();
 
     // Cleanup subscription on unmount
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Cleaning up auth state subscription");
+      subscription.unsubscribe();
+    };
   }, [initializeAuth, fetchUserRole, setIsAdmin]);
 
   return { session, user, userRole, loading, isAdmin };

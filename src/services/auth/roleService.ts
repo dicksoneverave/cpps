@@ -9,6 +9,11 @@ export const getUserRoleFromMapping = async (userId: string): Promise<string | n
   try {
     console.log("Fetching role for user ID:", userId);
     
+    if (!userId) {
+      console.error("No user ID provided to getUserRoleFromMapping");
+      return null;
+    }
+    
     const { data: mappingData, error: mappingError } = await supabase
       .from('user_mapping')
       .select('owc_user_id')
@@ -25,30 +30,45 @@ export const getUserRoleFromMapping = async (userId: string): Promise<string | n
       return null;
     }
     
-    console.log("Found owc_user_id:", mappingData.owc_user_id);
+    console.log("Found owc_user_id:", mappingData.owc_user_id, "for auth_user_id:", userId);
     
-    const { data: userGroupData, error: groupError } = await supabase
+    const { data: userGroupMapData, error: groupMapError } = await supabase
       .from('owc_user_usergroup_map')
-      .select(`
-        group_id,
-        owc_usergroups:owc_usergroups(title)
-      `)
+      .select('group_id')
       .eq('user_id', mappingData.owc_user_id)
       .maybeSingle();
       
-    if (groupError) {
-      console.error("Error in user group lookup:", groupError);
+    if (groupMapError) {
+      console.error("Error in user group mapping lookup:", groupMapError);
       return null;
     }
     
-    if (userGroupData?.owc_usergroups) {
-      const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
-      console.log("Found user group:", groupData?.title);
-      return groupData?.title || null;
+    if (!userGroupMapData) {
+      console.log("No group mapping found for OWC user ID:", mappingData.owc_user_id);
+      return null;
     }
     
-    console.log("No group found for owc_user_id:", mappingData.owc_user_id);
-    return null;
+    const groupId = userGroupMapData.group_id;
+    console.log("Found group_id:", groupId, "for OWC user ID:", mappingData.owc_user_id);
+    
+    const { data: groupData, error: groupError } = await supabase
+      .from('owc_usergroups')
+      .select('title')
+      .eq('id', groupId)
+      .maybeSingle();
+    
+    if (groupError) {
+      console.error("Error in user group title lookup:", groupError);
+      return null;
+    }
+    
+    if (!groupData?.title) {
+      console.log("No group title found for group_id:", groupId);
+      return null;
+    }
+    
+    console.log("Found user group:", groupData.title, "for user ID:", userId);
+    return groupData.title;
   } catch (error) {
     console.error("Error getting user role from mapping:", error);
     return null;
@@ -60,7 +80,12 @@ export const getUserRoleFromMapping = async (userId: string): Promise<string | n
  */
 export const fetchUserRoleComprehensive = async (userId: string, email: string): Promise<string | null> => {
   try {
-    console.log("Fetching comprehensive role for user:", email);
+    if (!userId && !email) {
+      console.error("Neither userId nor email provided to fetchUserRoleComprehensive");
+      return null;
+    }
+    
+    console.log("Fetching comprehensive role for user:", email || userId);
     
     // First check if we have a stored role in session storage
     const storedRole = getRoleFromSessionStorage();
@@ -70,31 +95,38 @@ export const fetchUserRoleComprehensive = async (userId: string, email: string):
     }
     
     // Try to get role from email mapping first as it's more reliable
-    const emailBasedRole = await fetchRoleByEmail(email);
-    if (emailBasedRole) {
-      console.log("Found role via email mapping:", emailBasedRole);
-      saveRoleToSessionStorage(emailBasedRole);
-      return emailBasedRole;
+    if (email) {
+      console.log("Trying to fetch role by email:", email);
+      const emailBasedRole = await fetchRoleByEmail(email);
+      if (emailBasedRole) {
+        console.log("Found role via email mapping:", emailBasedRole);
+        saveRoleToSessionStorage(emailBasedRole);
+        return emailBasedRole;
+      }
     }
     
     // Fallback to auth user id mapping
-    const authIdBasedRole = await fetchRoleByAuthId(userId);
-    if (authIdBasedRole) {
-      console.log("Found role via auth ID mapping:", authIdBasedRole);
-      saveRoleToSessionStorage(authIdBasedRole);
-      return authIdBasedRole;
+    if (userId) {
+      console.log("Trying to fetch role by auth ID:", userId);
+      const authIdBasedRole = await fetchRoleByAuthId(userId);
+      if (authIdBasedRole) {
+        console.log("Found role via auth ID mapping:", authIdBasedRole);
+        saveRoleToSessionStorage(authIdBasedRole);
+        return authIdBasedRole;
+      }
+      
+      // Last resort, use generic role lookup
+      console.log("Trying generic mapping with auth ID:", userId);
+      const genericRole = await getUserRoleFromMapping(userId);
+      if (genericRole) {
+        console.log("Found role via generic mapping:", genericRole);
+        saveRoleToSessionStorage(genericRole);
+        return genericRole;
+      }
     }
     
-    // Last resort, use generic role lookup
-    const genericRole = await getUserRoleFromMapping(userId);
-    if (genericRole) {
-      console.log("Found role via generic mapping:", genericRole);
-      saveRoleToSessionStorage(genericRole);
-      return genericRole;
-    }
-    
-    console.log("No role found for user:", email);
-    return null;
+    console.log("No role found for user:", email || userId);
+    return "User"; // Default role if all else fails
   } catch (error) {
     console.error("Error in fetchUserRoleComprehensive:", error);
     return "User"; // Default role if all else fails

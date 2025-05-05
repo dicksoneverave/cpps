@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from "react";
 import { fetchUserRoleComprehensive } from "@/services/auth";
-import { isAdminRole, getRoleFromSessionStorage } from "@/utils/roleUtils";
+import { isAdminRole, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roleUtils";
 
 export const useUserRole = () => {
   // Initialize from session storage if available
@@ -19,15 +19,27 @@ export const useUserRole = () => {
       if (email === "administrator@gmail.com") {
         console.log("Setting admin role for administrator@gmail.com");
         setUserRole("OWC Admin");
+        saveRoleToSessionStorage("OWC Admin");
         setIsAdmin(true);
         return;
       }
       
+      // Check if we already have a role in session storage
+      const storedRole = getRoleFromSessionStorage();
+      if (storedRole) {
+        console.log("Using stored role:", storedRole);
+        setUserRole(storedRole);
+        setIsAdmin(isAdminRole(storedRole));
+        return;
+      }
+      
       // Try to get the role using comprehensive lookup
+      console.log("Fetching role comprehensively for:", email);
       const role = await fetchUserRoleComprehensive(userId, email);
       console.log("Fetched role result:", role);
       
       setUserRole(role);
+      saveRoleToSessionStorage(role || "");
       
       // Update admin status based on role
       const adminStatus = isAdminRole(role);
@@ -36,6 +48,7 @@ export const useUserRole = () => {
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
       setUserRole("User"); // Default role if all else fails
+      saveRoleToSessionStorage("User");
       setIsAdmin(false);
     }
   }, []);
