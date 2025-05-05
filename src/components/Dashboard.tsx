@@ -1,14 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import DefaultDashboard from "./dashboards/DefaultDashboard";
-import DynamicRoleDashboard from "./dashboards/DynamicRoleDashboard";
-import AdminDashboard from "./dashboards/AdminDashboard";
-import EmployerDashboard from "./dashboards/EmployerDashboard";
-import RegistrarDashboard from "./dashboards/RegistrarDashboard";
-import CommissionerDashboard from "./dashboards/CommissionerDashboard";
-import PaymentDashboard from "./dashboards/PaymentDashboard";
-import ProvincialClaimsOfficerDashboard from "./dashboards/ProvincialClaimsOfficerDashboard";
+import DashboardFactory from "./dashboards/DashboardFactory";
 import ClaimsChart from "./dashboards/ClaimsCharts";
 
 interface DashboardProps {
@@ -45,35 +38,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     setDeathClaims(mockDeathData);
   }, []);
 
-  // Render the appropriate dashboard based on user role
-  const renderRoleDashboard = () => {
-    if (!user || !userRole) {
-      return <DefaultDashboard />;
-    }
-    
-    console.log("Rendering dashboard for role:", userRole);
-    
-    // Check for specialized dashboards first
-    const lowerRole = userRole.toLowerCase();
-    
-    if (lowerRole.includes('admin')) {
-      return <AdminDashboard />;
-    } else if (lowerRole.includes('employer')) {
-      return <EmployerDashboard />;
-    } else if (lowerRole.includes('registrar')) {
-      return <RegistrarDashboard />;
-    } else if (lowerRole.includes('commissioner')) {
-      return <CommissionerDashboard />;
-    } else if (lowerRole.includes('payment')) {
-      return <PaymentDashboard />;
-    } else if ((lowerRole.includes('provincial') && lowerRole.includes('claims')) || lowerRole.includes('provincialclaimsofficer')) {
-      return <ProvincialClaimsOfficerDashboard />;
-    }
-    
-    // For all other roles, use the dynamic dashboard
-    return <DynamicRoleDashboard title={userRole} />;
-  };
-
   const injuryChartConfig = {
     pending: { color: "#9ca360" },
     approved: { color: "#64805E" },
@@ -93,8 +57,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         {!userRole && <span className="text-sm text-gray-500 ml-2">(No role assigned)</span>}
       </h1>
       
-      {/* Role-Specific Dashboard */}
-      {renderRoleDashboard()}
+      {/* Role-Specific Dashboard from Factory */}
+      <DashboardFactory userRole={userRole} />
       
       {/* Common Dashboard Elements */}
       <div className="grid md:grid-cols-2 gap-6">
