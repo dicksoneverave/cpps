@@ -75,18 +75,17 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
     email: selectedUser.email
   };
   
-  // Instead of inserting directly to user_mapping view, we need to figure out
-  // how to properly update the mapping. Since user_mapping is a view, we need to
-  // use the appropriate table or function to update it.
   console.log("Creating user mapping with data:", mappingData);
   
-  // Using a direct SQL query might be more appropriate here
-  // This assumes there's a table that backs the user_mapping view
+  // Fix: use an array for inserting data to match expected type
   const { error: newMappingError } = await supabase
     .from('user_mapping')
-    .insert(mappingData);
+    .insert([mappingData]);
     
-  if (newMappingError) throw newMappingError;
+  if (newMappingError) {
+    console.error("Error creating user mapping:", newMappingError);
+    throw newMappingError;
+  }
   
   return owcUserId;
 }
@@ -100,7 +99,10 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
     .eq('user_id', owcUserId)
     .maybeSingle();
     
-  if (existingError) throw existingError;
+  if (existingError) {
+    console.error("Error checking existing mapping:", existingError);
+    throw existingError;
+  }
   
   if (existingMapping) {
     // Update existing mapping
@@ -109,16 +111,22 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
       .update({ group_id: parseInt(selectedGroupId) })
       .eq('user_id', owcUserId);
       
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Error updating user group mapping:", updateError);
+      throw updateError;
+    }
   } else {
-    // Insert new mapping
+    // Insert new mapping - use array for inserting data
     const { error: insertError } = await supabase
       .from('owc_user_usergroup_map')
-      .insert({
+      .insert([{
         user_id: owcUserId,
         group_id: parseInt(selectedGroupId)
-      });
+      }]);
       
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error("Error inserting user group mapping:", insertError);
+      throw insertError;
+    }
   }
 }
