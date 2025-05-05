@@ -56,6 +56,13 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return "Payment";
     }
     
+    // Special case for dr@owc.govpg - Commissioner (Chief Commissioner role)
+    if (email === "dr@owc.govpg") {
+      console.log("Chief Commissioner email detected");
+      saveRoleToSessionStorage("Commissioner");
+      return "Commissioner";
+    }
+    
     // First try user_mapping table which is the most direct way
     console.log("Checking user_mapping for email:", email);
     const { data: mappingData, error: mappingError } = await supabase
