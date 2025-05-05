@@ -48,7 +48,7 @@ async function enrichUsersWithGroupData(users: UserData[]): Promise<UserData[]> 
       
     if (mappingError) throw mappingError;
     
-    // Get group mappings - note that we use auth_user_id directly
+    // Get group mappings using auth_user_id directly
     const { data: groupMappings, error: groupError } = await supabase
       .from('owc_user_usergroup_map')
       .select('auth_user_id, group_id');

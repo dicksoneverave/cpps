@@ -51,7 +51,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       const authUserId = userMappingData.auth_user_id;
       console.log("Found auth_user_id for email:", email, "auth_user_id:", authUserId);
       
-      // Get the group from user_usergroup_map using auth_user_id
+      // Get the group from owc_user_usergroup_map using auth_user_id
       const { data: groupMapData, error: groupMapError } = await supabase
         .from('owc_user_usergroup_map')
         .select('group_id')
