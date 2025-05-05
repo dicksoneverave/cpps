@@ -5,6 +5,12 @@ export interface UserGroup {
   title: string;
 }
 
+export interface UserGroupAssignment {
+  id?: number;
+  auth_user_id: string;
+  group_id: number;
+}
+
 export interface UserData {
   id: string;
   email: string | null;

@@ -1,7 +1,7 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { fetchUserRoleComprehensive } from "@/services/auth";
 import { isAdminRole, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roles";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = () => {
   // Initialize from session storage if available
@@ -44,8 +44,51 @@ export const useUserRole = () => {
         return;
       }
       
-      // Try to get the role using direct auth_user_id lookup first, then fallback to other methods
-      console.log("Fetching role comprehensively for:", email);
+      // Follow the exact role fetching flow:
+      // 1. Use auth_user_id to find group_id in owc_user_usergroup_map
+      // 2. Use group_id to find title in owc_usergroups
+      console.log("Fetching role following the required flow for user ID:", userId);
+      
+      if (userId) {
+        // Step 1: Get group_id from owc_user_usergroup_map
+        const { data: userGroupData, error: userGroupError } = await supabase
+          .from('owc_user_usergroup_map')
+          .select('group_id')
+          .eq('auth_user_id', userId)
+          .maybeSingle();
+          
+        if (userGroupError) {
+          console.error("Error getting user's group:", userGroupError);
+        }
+        
+        if (userGroupData && userGroupData.group_id) {
+          const groupId = userGroupData.group_id;
+          console.log("Found group_id:", groupId, "for user ID:", userId);
+          
+          // Step 2: Get title from owc_usergroups
+          const { data: groupData, error: groupError } = await supabase
+            .from('owc_usergroups')
+            .select('title')
+            .eq('id', groupId)
+            .maybeSingle();
+            
+          if (groupError) {
+            console.error("Error getting group title:", groupError);
+          }
+          
+          if (groupData && groupData.title) {
+            const roleTitle = groupData.title;
+            console.log("Found role:", roleTitle);
+            setUserRole(roleTitle);
+            saveRoleToSessionStorage(roleTitle);
+            setIsAdmin(isAdminRole(roleTitle));
+            return;
+          }
+        }
+      }
+      
+      // If direct lookup failed, try the comprehensive fallback
+      console.log("Direct lookup failed, trying comprehensive fallback");
       const role = await fetchUserRoleComprehensive(userId, email);
       console.log("Fetched role result:", role);
       

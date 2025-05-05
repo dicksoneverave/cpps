@@ -1,4 +1,4 @@
-// src/services/admin/userGroupAssignmentService.ts
+
 import { supabase } from "@/integrations/supabase/client";
 import { UserGroupAssignment } from "@/types/adminTypes";
 
@@ -52,7 +52,6 @@ export const updateUserGroupAssignment = async (id: number, updates: Partial<Use
   } catch (error) {
     console.error("Error updating user group assignment:", error);
     throw error;
-    return null;
   }
 };
 
@@ -110,7 +109,8 @@ export const assignUserToGroup = async (userId: string, groupId: number): Promis
   }
 };
 
-const assignUserToGroupSimplified = async (userId: string, groupId: number | string): Promise<boolean> => {
+// Simplified version to ensure consistent type handling
+export const assignUserToGroupSimplified = async (userId: string, groupId: number): Promise<boolean> => {
   try {
     // First, check if the assignment already exists
     const { data: existingAssignment, error: checkError } = await supabase
@@ -130,12 +130,14 @@ const assignUserToGroupSimplified = async (userId: string, groupId: number | str
       return true;
     }
 
-    // Create a new assignment with a simpler insert operation
+    // Create a new assignment - ensure both types are correct
+    const numericGroupId = typeof groupId === 'string' ? parseInt(groupId, 10) : groupId;
+    
     const { error: insertError } = await supabase
       .from('owc_user_usergroup_map')
       .insert({ 
         auth_user_id: userId, 
-        group_id: groupId 
+        group_id: numericGroupId 
       });
 
     if (insertError) {
