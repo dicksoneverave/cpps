@@ -24,6 +24,13 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return null;
     }
     
+    // Special case for administrator@gmail.com
+    if (email === "administrator@gmail.com") {
+      console.log("Administrator email detected, setting admin role");
+      saveRoleToSessionStorage("OWC Admin");
+      return "OWC Admin";
+    }
+    
     // First try user_mapping table which is the most direct way
     console.log("Checking user_mapping for email:", email);
     const { data: mappingData, error: mappingError } = await supabase
@@ -54,7 +61,8 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       
       if (!userGroupMapData) {
         console.log("No group mapping found for OWC user ID:", mappingData.owc_user_id);
-        return null;
+        saveRoleToSessionStorage("User"); // Default role
+        return "User";
       }
       
       const groupId = userGroupMapData.group_id;
@@ -70,23 +78,29 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       
       if (groupError) {
         console.error("Error in owc_usergroups lookup:", groupError);
-        return null;
+        saveRoleToSessionStorage("User"); // Default role
+        return "User";
       }
       
       if (groupData?.title) {
         console.log("Found group title:", groupData.title, "for group_id:", groupId);
+        // Save to session storage
+        saveRoleToSessionStorage(groupData.title);
         return groupData.title;
       }
       
       console.log("No group title found for group_id:", groupId);
-      return null;
+      saveRoleToSessionStorage("User"); // Default role
+      return "User";
     }
     
     console.log("No direct mapping found in user_mapping for email:", email);
-    return null;
+    saveRoleToSessionStorage("User"); // Default role
+    return "User";
   } catch (e) {
     console.error("Error in email-based role lookup:", e);
-    return null;
+    saveRoleToSessionStorage("User"); // Default role
+    return "User";
   }
 };
 
@@ -162,6 +176,7 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
     }
     
     console.log("Found group for auth ID:", userId, "Group:", groupData.title);
+    saveRoleToSessionStorage(groupData.title);
     return groupData.title;
   } catch (e) {
     console.error("Error in auth_user_id-based role lookup:", e);

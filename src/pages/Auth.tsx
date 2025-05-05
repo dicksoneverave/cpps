@@ -14,6 +14,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -23,20 +24,30 @@ const Auth = () => {
       const { data } = await supabase.auth.getSession();
       
       if (data.session) {
-        console.log("Found existing session, redirecting...");
-        // Check if the user is an admin
-        const userEmail = data.session.user.email;
-        if (userEmail === "administrator@gmail.com") {
-          navigate("/admin");
-          return;
-        }
-        // Force redirect to dashboard for all other authenticated users
-        navigate("/dashboard", { replace: true });
+        console.log("Found existing session, user is already authenticated");
+        setIsAuthenticated(true);
       }
     };
     
     checkSession();
-  }, [navigate]);
+  }, []);
+
+  useEffect(() => {
+    // Redirect if user is authenticated
+    if (isAuthenticated) {
+      console.log("User is authenticated, redirecting to appropriate dashboard");
+      // Check if the user is an administrator
+      const storedRole = sessionStorage.getItem('userRole');
+      
+      if (storedRole && storedRole.toLowerCase().includes('admin')) {
+        console.log("Redirecting admin to /admin");
+        navigate("/admin", { replace: true });
+      } else {
+        console.log("Redirecting user to /dashboard");
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,8 +72,8 @@ const Auth = () => {
           
           // Store the admin role
           saveRoleToSessionStorage("OWC Admin");
-          navigate("/admin", { replace: true });
-          return;
+          setIsAuthenticated(true);
+          return; // Let the useEffect handle the redirect
         }
         
         // For regular users, fetch their role
@@ -79,8 +90,8 @@ const Auth = () => {
           description: `Welcome back! Redirecting to your dashboard...`,
         });
         
-        // Force navigation to dashboard immediately with replace:true
-        navigate("/dashboard", { replace: true });
+        // Mark as authenticated and let useEffect handle redirect
+        setIsAuthenticated(true);
       } else {
         throw new Error("Failed to authenticate. Please try again.");
       }

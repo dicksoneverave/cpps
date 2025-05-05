@@ -16,18 +16,24 @@ export const useAuthState = () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       console.log("Initial session check:", currentSession?.user?.email);
       
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        // Directly set admin flag for administrator@gmail.com
-        if (currentSession.user.email === "administrator@gmail.com") {
-          console.log("Setting admin flag for administrator@gmail.com");
-          setIsAdmin(true);
-        } else {
-          console.log("Fetching user role for:", currentSession.user.email);
-          await fetchUserRole(currentSession.user.id, currentSession.user.email || "");
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+        
+        if (currentSession.user) {
+          // Directly set admin flag for administrator@gmail.com
+          if (currentSession.user.email === "administrator@gmail.com") {
+            console.log("Setting admin flag for administrator@gmail.com");
+            setIsAdmin(true);
+          } else {
+            console.log("Fetching user role for:", currentSession.user.email);
+            await fetchUserRole(currentSession.user.id, currentSession.user.email || "");
+          }
         }
+      } else {
+        // Clear session data if no active session
+        setSession(null);
+        setUser(null);
       }
     } catch (error) {
       console.error("Error initializing auth:", error);
@@ -44,24 +50,29 @@ export const useAuthState = () => {
       (event, newSession) => {
         console.log("Auth state changed:", event, newSession?.user?.email);
         
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        // If session changes, fetch the user role
-        if (newSession?.user) {
-          // Directly set admin flag for administrator@gmail.com
-          if (newSession.user.email === "administrator@gmail.com") {
-            console.log("Setting admin flag on auth state change for administrator@gmail.com");
-            setIsAdmin(true);
-          } else {
-            // Use a timeout to avoid deadlocks in the Supabase auth state manager
-            setTimeout(() => {
-              console.log("Fetching user role on auth state change:", newSession.user.email);
-              fetchUserRole(newSession.user.id, newSession.user.email || "");
-            }, 0);
+        if (newSession) {
+          setSession(newSession);
+          setUser(newSession.user);
+          
+          // If session changes, fetch the user role
+          if (newSession.user) {
+            // Directly set admin flag for administrator@gmail.com
+            if (newSession.user.email === "administrator@gmail.com") {
+              console.log("Setting admin flag on auth state change for administrator@gmail.com");
+              setIsAdmin(true);
+            } else {
+              // Use a timeout to avoid deadlocks in the Supabase auth state manager
+              setTimeout(() => {
+                console.log("Fetching user role on auth state change:", newSession.user.email);
+                fetchUserRole(newSession.user.id, newSession.user.email || "");
+              }, 0);
+            }
           }
         } else {
+          // Clear session data on logout
           sessionStorage.removeItem('userRole');
+          setSession(null);
+          setUser(null);
           setIsAdmin(false);
         }
       }

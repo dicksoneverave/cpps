@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { fetchUserRoleComprehensive } from "@/services/auth";
 import { isAdminRole, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roleUtils";
 
@@ -10,6 +10,16 @@ export const useUserRole = () => {
   
   const [userRole, setUserRole] = useState<string | null>(initialRole);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
+
+  // When component mounts, double-check the role from session storage
+  useEffect(() => {
+    const storedRole = getRoleFromSessionStorage();
+    if (storedRole && storedRole !== userRole) {
+      console.log("Syncing role from session storage:", storedRole);
+      setUserRole(storedRole);
+      setIsAdmin(isAdminRole(storedRole));
+    }
+  }, [userRole]);
 
   const fetchUserRole = useCallback(async (userId: string, email: string) => {
     try {

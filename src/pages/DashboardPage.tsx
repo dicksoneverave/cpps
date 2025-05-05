@@ -13,17 +13,49 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [isCheckingRole, setIsCheckingRole] = useState(false);
   const [displayRole, setDisplayRole] = useState<string | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    // Try to get the role from session storage first
+    // First, check if we already have a role saved in session storage
     const storedRole = getRoleFromSessionStorage();
     if (storedRole) {
-      console.log("Using stored role:", storedRole);
+      console.log("Using stored role in DashboardPage:", storedRole);
       setDisplayRole(storedRole);
     } else {
       setDisplayRole(userRole);
     }
 
+    // Check for session to determine auth status
+    const checkSession = async () => {
+      setIsCheckingSession(true);
+      try {
+        console.log("Checking session in DashboardPage...");
+        const { data } = await supabase.auth.getSession();
+        
+        if (!data.session) {
+          console.log("No session found in DashboardPage, redirecting to login");
+          navigate("/login", { replace: true });
+          return;
+        } else {
+          console.log("Session found in DashboardPage:", data.session.user.email);
+          // Special case for administrator@gmail.com
+          if (data.session.user.email === "administrator@gmail.com") {
+            console.log("Admin user found, redirecting to admin page");
+            navigate("/admin", { replace: true });
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+    
+    checkSession();
+  }, [navigate, userRole]);
+
+  useEffect(() => {
     const checkUserRole = async () => {
       if (!user) return;
       
@@ -48,40 +80,8 @@ const DashboardPage: React.FC = () => {
       checkUserRole();
     }
   }, [user, userRole, loading, displayRole]);
-  
-  useEffect(() => {
-    // Check if session exists to prevent redirecting too early
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      
-      if (!data.session) {
-        // No session means not logged in
-        console.log("No session found, redirecting to login");
-        navigate("/login", { replace: true });
-        return;
-      }
-      
-      if (!loading && !isCheckingRole) {
-        if (!user) {
-          // Double-check: redirect to login if no user
-          console.log("No user found, redirecting to login");
-          navigate("/login", { replace: true });
-          return;
-        }
-        
-        // Special case for administrator@gmail.com
-        if (user.email === "administrator@gmail.com") {
-          console.log("Admin user found, redirecting to admin page");
-          navigate("/admin", { replace: true });
-          return;
-        }
-      }
-    };
-    
-    checkSession();
-  }, [user, loading, navigate, isCheckingRole]);
 
-  if (loading || isCheckingRole) {
+  if (loading || isCheckingRole || isCheckingSession) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
