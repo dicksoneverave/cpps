@@ -15,28 +15,37 @@ export const getUserRoleFromMapping = async (userId: string): Promise<string | n
       return null;
     }
     
-    // Query with a join between owc_user_usergroup_map and owc_usergroups
-    const { data: userRoleData, error: userRoleError } = await supabase
+    // Query to get group_id from owc_user_usergroup_map
+    const { data: userGroupData, error: userGroupError } = await supabase
       .from('owc_user_usergroup_map')
-      .select(`
-        group_id,
-        owc_usergroups!inner(title)
-      `)
+      .select('group_id')
       .eq('auth_user_id', userId)
       .maybeSingle();
       
-    if (userRoleError) {
-      console.error("Error in user role mapping lookup:", userRoleError);
+    if (userGroupError) {
+      console.error("Error in user role mapping lookup:", userGroupError);
       return null;
     }
     
-    if (!userRoleData) {
+    if (!userGroupData) {
       console.log("No role mapping found for auth_user_id:", userId);
       return null;
     }
     
-    if (userRoleData.owc_usergroups?.title) {
-      const roleTitle = userRoleData.owc_usergroups.title;
+    // Query to get title from owc_usergroups
+    const { data: groupData, error: groupError } = await supabase
+      .from('owc_usergroups')
+      .select('title')
+      .eq('id', userGroupData.group_id)
+      .maybeSingle();
+      
+    if (groupError) {
+      console.error("Error in group title lookup:", groupError);
+      return null;
+    }
+    
+    if (groupData?.title) {
+      const roleTitle = groupData.title;
       console.log("Found role:", roleTitle, "for user ID:", userId);
       saveRoleToSessionStorage(roleTitle);
       return roleTitle;

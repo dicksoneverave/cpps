@@ -44,59 +44,50 @@ async function enrichUsersWithGroupData(users: UserData[]): Promise<UserData[]> 
     // Get user mappings
     const { data: mappings, error: mappingError } = await supabase
       .from('user_mapping')
-      .select('auth_user_id, owc_user_id, name, email');
+      .select('auth_user_id, name, email');
       
     if (mappingError) throw mappingError;
     
-    // Get group mappings
-    const owcUserIds = mappings?.map(m => m.owc_user_id).filter(Boolean) || [];
+    // Get group mappings - note that we use auth_user_id directly
+    const { data: groupMappings, error: groupError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select('auth_user_id, group_id');
+      
+    if (groupError) throw groupError;
     
-    if (owcUserIds.length > 0) {
-      const { data: groupMappings, error: groupError } = await supabase
-        .from('owc_user_usergroup_map')
-        .select('user_id, group_id');
+    // Get group titles
+    const groupIds = groupMappings?.map(gm => gm.group_id) || [];
+    
+    let groupTitles: Record<number, string> = {};
+    
+    if (groupIds.length > 0) {
+      const { data: groups, error: groupsError } = await supabase
+        .from('owc_usergroups')
+        .select('id, title');
         
-      if (groupError) throw groupError;
+      if (groupsError) throw groupsError;
       
-      // Get group titles
-      const groupIds = groupMappings?.map(gm => gm.group_id) || [];
-      
-      let groupTitles: Record<number, string> = {};
-      
-      if (groupIds.length > 0) {
-        const { data: groups, error: groupsError } = await supabase
-          .from('owc_usergroups')
-          .select('id, title');
-          
-        if (groupsError) throw groupsError;
-        
-        if (groups) {
-          groups.forEach(group => {
-            groupTitles[group.id] = group.title;
-          });
-        }
+      if (groups) {
+        groups.forEach(group => {
+          groupTitles[group.id] = group.title;
+        });
       }
-      
-      // Merge data
-      const enhancedUsers = users.map(user => {
-        const mapping = mappings?.find(m => m.auth_user_id === user.id);
-        const groupMapping = mapping?.owc_user_id 
-          ? groupMappings?.find(gm => gm.user_id === mapping.owc_user_id)
-          : undefined;
-          
-        return {
-          ...user,
-          name: mapping?.name || user.name,
-          owc_user_id: mapping?.owc_user_id,
-          group_id: groupMapping?.group_id,
-          group_title: groupMapping?.group_id ? groupTitles[groupMapping.group_id] : undefined
-        };
-      });
-      
-      return enhancedUsers;
-    } else {
-      return users;
     }
+    
+    // Merge data
+    const enhancedUsers = users.map(user => {
+      const mapping = mappings?.find(m => m.auth_user_id === user.id);
+      const groupMapping = groupMappings?.find(gm => gm.auth_user_id === user.id);
+        
+      return {
+        ...user,
+        name: mapping?.name || user.name,
+        group_id: groupMapping?.group_id,
+        group_title: groupMapping?.group_id ? groupTitles[groupMapping.group_id] : undefined
+      };
+    });
+    
+    return enhancedUsers;
   } catch (error) {
     console.error("Error enriching users with group data:", error);
     throw error;

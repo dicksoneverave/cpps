@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,22 +48,27 @@ const DashboardPage: React.FC = () => {
           
           // For all other users with sessions, check if we can directly get the role
           if (data.session.user.id) {
-            // Try to get the role directly from the updated owc_user_usergroup_map table
+            // Try to get the role directly from the updated owc_user_usergroup_map and owc_usergroups tables
             const { data: userGroupData } = await supabase
               .from('owc_user_usergroup_map')
-              .select(`
-                group_id,
-                owc_usergroups!inner(title)
-              `)
+              .select('group_id')
               .eq('auth_user_id', data.session.user.id)
               .maybeSingle();
               
-            if (userGroupData?.owc_usergroups) {
-              const groupTitle = userGroupData.owc_usergroups.title;
-              if (groupTitle) {
-                console.log("Found user role directly:", groupTitle);
-                setDisplayRole(groupTitle);
-                saveRoleToSessionStorage(groupTitle);
+            if (userGroupData?.group_id) {
+              const groupId = userGroupData.group_id;
+              
+              // Get the group title
+              const { data: groupData } = await supabase
+                .from('owc_usergroups')
+                .select('title')
+                .eq('id', groupId)
+                .maybeSingle();
+                
+              if (groupData?.title) {
+                console.log("Found user role directly:", groupData.title);
+                setDisplayRole(groupData.title);
+                saveRoleToSessionStorage(groupData.title);
               }
             }
           }
@@ -113,21 +117,27 @@ const DashboardPage: React.FC = () => {
             
             // Try the direct approach first using auth_user_id in owc_user_usergroup_map
             if (userId) {
+              // Get the group_id from owc_user_usergroup_map
               const { data: userGroupData } = await supabase
                 .from('owc_user_usergroup_map')
-                .select(`
-                  group_id,
-                  owc_usergroups!inner(title)
-                `)
+                .select('group_id')
                 .eq('auth_user_id', userId)
                 .maybeSingle();
                 
-              if (userGroupData?.owc_usergroups) {
-                const groupTitle = userGroupData.owc_usergroups.title;
-                if (groupTitle) {
-                  console.log("Found user role directly:", groupTitle);
-                  setDisplayRole(groupTitle);
-                  saveRoleToSessionStorage(groupTitle);
+              if (userGroupData?.group_id) {
+                const groupId = userGroupData.group_id;
+                
+                // Get the group title
+                const { data: groupData } = await supabase
+                  .from('owc_usergroups')
+                  .select('title')
+                  .eq('id', groupId)
+                  .maybeSingle();
+                  
+                if (groupData?.title) {
+                  console.log("Found user role directly:", groupData.title);
+                  setDisplayRole(groupData.title);
+                  saveRoleToSessionStorage(groupData.title);
                   setIsCheckingRole(false);
                   return;
                 }

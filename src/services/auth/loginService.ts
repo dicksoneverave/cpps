@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { verifyPassword, hashPassword } from "@/utils/passwordUtils";
 
@@ -116,15 +115,19 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
         // With our improved database structure, we can directly get user's role from owc_user_usergroup_map
         const { data: userGroupData } = await supabase
           .from('owc_user_usergroup_map')
-          .select(`
-            group_id,
-            owc_usergroups!inner(title)
-          `)
+          .select('group_id')
           .eq('auth_user_id', authData.user.id)
           .maybeSingle();
         
-        if (userGroupData?.owc_usergroups) {
-          const groupTitle = userGroupData.owc_usergroups.title;
+        if (userGroupData?.group_id) {
+          // Get the group title
+          const { data: groupData } = await supabase
+            .from('owc_usergroups')
+            .select('title')
+            .eq('id', userGroupData.group_id)
+            .maybeSingle();
+            
+          const groupTitle = groupData?.title;
           if (groupTitle) {
             console.log("Found user role directly:", groupTitle);
             customUserData.role = groupTitle;
