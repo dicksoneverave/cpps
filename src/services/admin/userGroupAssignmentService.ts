@@ -35,8 +35,9 @@ export const fetchUserGroupsForAdmin = async (): Promise<UserGroup[]> => {
       return [];
     }
 
+    // Convert the id to string to match UserGroup type
     return data.map((group) => ({
-      id: group.id.toString(),
+      id: group.id.toString(), // Convert to string
       title: group.title || "",
     }));
   } catch (error) {
@@ -58,7 +59,7 @@ export const assignUserToGroup = async (
       .from('owc_user_usergroup_map')
       .select('*')
       .eq('auth_user_id', userId)
-      .eq('group_id', groupId);
+      .eq('group_id', parseInt(groupId));
 
     if (checkError) {
       console.error("Error checking existing user group mapping:", checkError);
@@ -100,7 +101,7 @@ export const removeUserFromGroup = async (
       .from('owc_user_usergroup_map')
       .delete()
       .eq('auth_user_id', user.id)
-      .eq('group_id', groupId);
+      .eq('group_id', parseInt(groupId));
 
     if (error) {
       console.error("Error removing user from group:", error);
@@ -122,7 +123,7 @@ export const fetchUsersInGroup = async (groupId: string): Promise<UserData[]> =>
       .select(`
         auth_user_id
       `)
-      .eq('group_id', groupId);
+      .eq('group_id', parseInt(groupId));
 
     if (error) {
       console.error("Error fetching users in group:", error);
