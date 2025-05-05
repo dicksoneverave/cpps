@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,15 +44,49 @@ const Auth = () => {
       const storedRole = sessionStorage.getItem('userRole');
       const currentEmail = sessionStorage.getItem('currentUserEmail') || email;
       
-      if (currentEmail === "administrator@gmail.com" || (storedRole && isAdminRole(storedRole))) {
-        console.log("Redirecting admin to /admin");
-        navigate("/admin", { replace: true });
-      } else {
-        console.log("Redirecting user to /dashboard");
-        navigate("/dashboard", { replace: true });
-      }
+      // Handle role-based redirects
+      redirectBasedOnRole(storedRole, currentEmail);
     }
   }, [isAuthenticated, navigate, email]);
+
+  // Function to handle role-based redirections
+  const redirectBasedOnRole = (role: string | null, userEmail: string) => {
+    console.log("Redirecting based on role:", role, "for user:", userEmail);
+    
+    if (userEmail === "administrator@gmail.com" || (role && isAdminRole(role))) {
+      console.log("Redirecting admin to /admin");
+      navigate("/admin", { replace: true });
+      return;
+    }
+    
+    // Role-specific redirects
+    if (role) {
+      const lowerRole = role.toLowerCase();
+      
+      if (lowerRole.includes('employer')) {
+        console.log("Redirecting employer to /employer-dashboard");
+        navigate("/employer-dashboard", { replace: true });
+      } else if (lowerRole.includes('registrar')) {
+        console.log("Redirecting registrar to /registrar-dashboard");
+        navigate("/registrar-dashboard", { replace: true });
+      } else if (lowerRole.includes('commissioner')) {
+        console.log("Redirecting commissioner to /commissioner-dashboard");
+        navigate("/commissioner-dashboard", { replace: true });
+      } else if (lowerRole.includes('payment')) {
+        console.log("Redirecting payment to /payment-dashboard");
+        navigate("/payment-dashboard", { replace: true });
+      } else if (lowerRole.includes('provincialclaimsofficer') || lowerRole.includes('provincial claims officer')) {
+        console.log("Redirecting provincial claims officer to /pco-dashboard");
+        navigate("/pco-dashboard", { replace: true });
+      } else {
+        console.log("Redirecting user with role to /dashboard");
+        navigate("/dashboard", { replace: true });
+      }
+    } else {
+      console.log("Redirecting user without role to /dashboard");
+      navigate("/dashboard", { replace: true });
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
