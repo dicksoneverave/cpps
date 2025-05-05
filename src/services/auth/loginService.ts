@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { verifyPassword, hashPassword } from "@/utils/passwordUtils";
 
@@ -25,6 +24,7 @@ interface CustomUserData {
   created_at: string;
   updated_at: string;
   owc_user_id?: number; // Make this optional since it might not always be set
+  role?: string; // Add role property to fix the error
 }
 
 /**

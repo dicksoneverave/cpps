@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +5,7 @@ import Dashboard from "@/components/Dashboard";
 import Navbar from "@/components/Navbar";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchRoleByEmail, getRoleFromSessionStorage } from "@/utils/roles";
+import { fetchRoleByEmail, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roles";
 
 const DashboardPage: React.FC = () => {
   const { user, loading, userRole } = useAuth();
