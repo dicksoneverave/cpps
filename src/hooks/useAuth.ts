@@ -1,111 +1,60 @@
-import { useState } from "react";
+
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
-import { loginWithSupabaseAuth } from "@/services/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchRoleByEmail, saveRoleToSessionStorage } from "@/utils/roles";
+import { useToast } from "@/components/ui/use-toast";
 import { getDashboardPathByGroupTitle } from "@/services/admin/userGroupService";
 
 export const useAuth = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { toast } = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Known email role mappings
+  // Hard-coded email to role mappings for testing
   const knownEmailRoleMappings: Record<string, string> = {
     "administrator@gmail.com": "OWC Admin",
     "dr@owc.gov.pg": "Commissioner",
     "dr@owc.govpg": "Commissioner",
-    "vagi@bsp.com.pg": "ProvincialClaimsOfficer",
-    "employer@gmail.com": "Employer",
-    "registrar@gmail.com": "Registrar",
-    "commissioner@gmail.com": "Commissioner",
-    "payment@gmail.com": "Payment",
-    "deputy@gmail.com": "Deputy Registrar",
-    "agent@gmail.com": "Agent Lawyer",
-    "dataentry@gmail.com": "Data Entry",
-    "tribunal@gmail.com": "Tribunal",
-    "fos@gmail.com": "FOS",
-    "insurance@gmail.com": "Insurance",
-    "solicitor@gmail.com": "Solicitor",
-    "claimsmanager@gmail.com": "Claims Manager",
-    "statistical@gmail.com": "Statistical"
   };
 
-  // Function to determine dashboard path based on role
-  const getDashboardPathFromRole = (role: string | null): string => {
-    if (!role) return "/dashboard";
+  const redirectBasedOnRole = useCallback((role: string | null, userEmail: string | null) => {
+    console.log("[useAuth Debug] Redirecting based on role:", role);
+    console.log("[useAuth Debug] User email:", userEmail);
     
-    const lowerRole = role.toLowerCase();
-    
-    if (lowerRole.includes('admin') || email === "administrator@gmail.com") {
-      return "/admin";
-    } else if (lowerRole.includes('employer')) {
-      return "/employer-dashboard";
-    } else if (lowerRole.includes('deputy registrar')) {
-      return "/deputy-registrar-dashboard";
-    } else if (lowerRole.includes('registrar') && !lowerRole.includes('deputy')) {
-      return "/registrar-dashboard";
-    } else if (lowerRole.includes('commissioner')) {
-      return "/commissioner-dashboard";
-    } else if (lowerRole.includes('payment')) {
-      return "/payment-dashboard";
-    } else if (lowerRole.includes('provincialclaimsofficer') || lowerRole.includes('provincial claims officer')) {
-      return "/pco-dashboard";
-    } else if (lowerRole.includes('agent') || lowerRole.includes('lawyer')) {
-      return "/agent-lawyer-dashboard";
-    } else if (lowerRole.includes('data entry')) {
-      return "/data-entry-dashboard";
-    } else if (lowerRole.includes('tribunal')) {
-      return "/tribunal-dashboard";
-    } else if (lowerRole.includes('fos')) {
-      return "/fos-dashboard";
-    } else if (lowerRole.includes('insurance')) {
-      return "/insurance-dashboard";
-    } else if (lowerRole.includes('solicitor')) {
-      return "/solicitor-dashboard";
-    } else if (lowerRole.includes('claims manager')) {
-      return "/claims-manager-dashboard";
-    } else if (lowerRole.includes('statistical')) {
-      return "/statistical-dashboard";
+    // Special case for administrator@gmail.com
+    if (userEmail === "administrator@gmail.com") {
+      console.log("[useAuth Debug] Administrator email detected, redirecting to /admin");
+      navigate("/admin", { replace: true });
+      return;
     }
     
-    return "/dashboard";
-  };
-
-  // Function to handle role-based redirections
-  const redirectBasedOnRole = (role: string | null, userEmail: string) => {
-    console.log("Redirecting based on role:", role, "for user:", userEmail);
-    
-    // Check for known email mappings first
+    // Check for known email mappings
     if (userEmail && knownEmailRoleMappings[userEmail]) {
       const knownRole = knownEmailRoleMappings[userEmail];
-      console.log(`Known email mapping found for ${userEmail}: ${knownRole}`);
+      console.log(`[useAuth Debug] Known email mapping found for ${userEmail}: ${knownRole}`);
+      sessionStorage.setItem('userRole', knownRole);
       
-      // Save the role to session storage
-      saveRoleToSessionStorage(knownRole);
-      
-      // Get dashboard path for the role
       const dashboardPath = getDashboardPathByGroupTitle(knownRole);
-      console.log(`Redirecting to ${dashboardPath} for role ${knownRole}`);
+      console.log("[useAuth Debug] Redirecting to:", dashboardPath);
       navigate(dashboardPath, { replace: true });
       return;
     }
     
-    // Role-specific redirects
     if (role) {
+      // Get dashboard path based on role
       const dashboardPath = getDashboardPathByGroupTitle(role);
-      console.log(`Redirecting to ${dashboardPath} for role ${role}`);
+      console.log("[useAuth Debug] Role found, redirecting to:", dashboardPath);
       navigate(dashboardPath, { replace: true });
     } else {
-      console.log("Redirecting to default dashboard");
+      // Default to dashboard if no role
+      console.log("[useAuth Debug] No role found, redirecting to default dashboard");
       navigate("/dashboard", { replace: true });
     }
-  };
+  }, [navigate, knownEmailRoleMappings]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,88 +62,112 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      console.log("Attempting login for email:", email);
+      console.log("[useAuth Debug] Attempting login for:", email);
       
-      // Check for known email mappings first
-      if (email && knownEmailRoleMappings[email]) {
-        const knownRole = knownEmailRoleMappings[email];
-        console.log(`Known email mapping found for ${email}: ${knownRole}`);
-        
-        // Save role and email to session storage
-        saveRoleToSessionStorage(knownRole);
-        sessionStorage.setItem('currentUserEmail', email);
-        
-        // For administrator@gmail.com, show special toast message
-        if (email === "administrator@gmail.com") {
-          toast({
-            title: "Admin Login Successful",
-            description: "Welcome back, Administrator!",
-          });
-        } else {
-          toast({
-            title: "Login Successful",
-            description: `Welcome back, ${knownRole}! Redirecting to your dashboard...`,
-          });
-        }
-        
-        setIsAuthenticated(true);
-        return; // Let the useEffect handle the redirect
-      }
-      
-      // For regular email/password authentication
-      const response = await loginWithSupabaseAuth(email, password);
-      
-      if (response.data?.user || response.customUser) {
-        // Use custom user data if available
-        const userData = response.customUser || response.data?.user;
-        console.log("Login successful for:", userData?.email || userData?.name);
-        
-        // Store the current user's email
-        sessionStorage.setItem('currentUserEmail', email);
-        
-        // Special handling for administrator
-        if (email === "administrator@gmail.com") {
-          toast({
-            title: "Admin Login Successful",
-            description: "Welcome back, Administrator!",
-          });
-          
-          // Store the admin role
-          saveRoleToSessionStorage("OWC Admin");
-          setIsAuthenticated(true);
-          return; // Let the useEffect handle the redirect
-        }
-        
-        // For regular users, fetch their role
-        console.log("Fetching role for regular user:", email);
-        const userRole = await fetchRoleByEmail(email);
-        console.log("Fetched user role:", userRole);
-        
-        // Success message for all other users
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Login error:", error.message);
+        setError(error.message);
         toast({
-          title: "Login Successful",
-          description: `Welcome back${userRole ? `, ${userRole}` : ''}! Redirecting to your dashboard...`,
+          variant: "destructive",
+          title: "Login Failed",
+          description: error.message,
         });
+        return;
+      }
+
+      if (data.user) {
+        console.log("[useAuth Debug] Login successful for:", data.user.email);
         
-        // Mark as authenticated and let useEffect handle redirect
+        // Save current user email to session storage for persistence
+        sessionStorage.setItem('currentUserEmail', data.user.email || "");
+        
+        // Special case handling for administrator
+        if (data.user.email === "administrator@gmail.com") {
+          console.log("[useAuth Debug] Admin user, setting admin role");
+          sessionStorage.setItem('userRole', 'OWC Admin');
+          setIsAuthenticated(true);
+          navigate("/admin", { replace: true });
+          return;
+        }
+
+        // Special case for known email mappings
+        if (data.user.email && knownEmailRoleMappings[data.user.email]) {
+          const knownRole = knownEmailRoleMappings[data.user.email];
+          console.log(`[useAuth Debug] Known role for ${data.user.email}: ${knownRole}`);
+          sessionStorage.setItem('userRole', knownRole);
+          setIsAuthenticated(true);
+          
+          const dashboardPath = getDashboardPathByGroupTitle(knownRole);
+          console.log("[useAuth Debug] Redirecting to known role dashboard:", dashboardPath);
+          navigate(dashboardPath, { replace: true });
+          return;
+        }
+
+        console.log("[useAuth Debug] Fetching user role from database...");
+        // Need to find the user's role from the database
+        if (data.user.id) {
+          try {
+            // Step 1: Get group_id from owc_user_usergroup_map
+            const { data: userGroupData, error: userGroupError } = await supabase
+              .from('owc_user_usergroup_map')
+              .select('group_id')
+              .eq('auth_user_id', data.user.id)
+              .maybeSingle();
+              
+            if (userGroupError) {
+              console.error("[useAuth Debug] Error getting user's group:", userGroupError);
+            }
+            
+            if (userGroupData && userGroupData.group_id) {
+              const groupId = userGroupData.group_id;
+              console.log("[useAuth Debug] Found group_id:", groupId);
+              
+              // Step 2: Get title from owc_usergroups using group_id
+              const { data: groupData, error: groupError } = await supabase
+                .from('owc_usergroups')
+                .select('title')
+                .eq('id', groupId)
+                .maybeSingle();
+                
+              if (groupError) {
+                console.error("[useAuth Debug] Error getting group title:", groupError);
+              }
+              
+              if (groupData && groupData.title) {
+                console.log("[useAuth Debug] Found role:", groupData.title);
+                sessionStorage.setItem('userRole', groupData.title);
+                setIsAuthenticated(true);
+                
+                // Get dashboard path based on role and redirect
+                const dashboardPath = getDashboardPathByGroupTitle(groupData.title);
+                console.log("[useAuth Debug] Redirecting to role dashboard:", dashboardPath);
+                navigate(dashboardPath, { replace: true });
+                return;
+              }
+            }
+          } catch (error) {
+            console.error("[useAuth Debug] Error fetching user role:", error);
+          }
+        }
+        
+        // If we reach here, we couldn't determine a specific role
+        console.log("[useAuth Debug] No specific role found, setting as authenticated user");
         setIsAuthenticated(true);
-      } else {
-        throw new Error("Failed to authenticate. Please try again.");
+        sessionStorage.setItem('userRole', 'User');
+        navigate("/dashboard", { replace: true });
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      let errorMessage = "Invalid email or password. Please try again.";
-      
-      if (error instanceof Error) {
-        // Display the specific error message from our service
-        errorMessage = error.message;
-      }
-      
-      setError(errorMessage);
+    } catch (error) {
+      console.error("[useAuth Debug] Unexpected error during login:", error);
+      setError("An unexpected error occurred. Please try again.");
       toast({
         variant: "destructive",
-        title: "Login failed",
-        description: errorMessage,
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -209,7 +182,6 @@ export const useAuth = () => {
     loading,
     error,
     isAuthenticated,
-    setIsAuthenticated,
     handleLogin,
     redirectBasedOnRole
   };

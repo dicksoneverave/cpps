@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import LoginForm from "@/components/auth/LoginForm";
@@ -31,6 +32,10 @@ const Auth = () => {
       // Get role from session storage or check email directly
       const storedRole = sessionStorage.getItem('userRole');
       const currentEmail = sessionStorage.getItem('currentUserEmail') || email;
+      
+      console.log("[Auth Debug] Stored role:", storedRole);
+      console.log("[Auth Debug] Current email:", currentEmail);
+      console.log("[Auth Debug] isAuthenticated:", isAuthenticated);
       
       // Handle role-based redirects
       redirectBasedOnRole(storedRole, currentEmail);

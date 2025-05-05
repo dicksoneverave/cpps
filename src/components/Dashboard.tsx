@@ -50,12 +50,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     rejected: { color: "#FF9F0A" },
   };
 
+  // Retrieve the stored role for debugging
+  const storedRole = sessionStorage.getItem('userRole');
+  
   return (
     <div className="container mx-auto p-4 mt-8">
       <h1 className="text-2xl font-bold mb-6">
         Dashboard - {userRole || 'User'}
         {!userRole && <span className="text-sm text-gray-500 ml-2">(No role assigned)</span>}
       </h1>
+      
+      {/* Debug information */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-6">
+        <h2 className="text-lg font-semibold mb-2">Debugging Information</h2>
+        <div className="space-y-1 text-sm">
+          <p><strong>Passed userRole prop:</strong> {userRole || 'Not set'}</p>
+          <p><strong>Stored Role in Session:</strong> {storedRole || 'Not stored in session'}</p>
+          <p><strong>Current URL:</strong> {window.location.pathname}</p>
+          <p><strong>Expected URL:</strong> {getDashboardPathFromRole(storedRole || userRole)}</p>
+        </div>
+      </div>
       
       {/* Role-Specific Dashboard from Factory */}
       <DashboardFactory userRole={userRole} />
@@ -78,6 +92,47 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       </div>
     </div>
   );
+};
+
+// Helper function to determine expected dashboard path
+const getDashboardPathFromRole = (role: string | null): string => {
+  if (!role) return "/dashboard";
+  
+  const lowerRole = role.toLowerCase();
+  
+  if (lowerRole.includes('admin')) {
+    return "/admin";
+  } else if (lowerRole.includes('employer')) {
+    return "/employer-dashboard";
+  } else if (lowerRole.includes('deputy registrar')) {
+    return "/deputy-registrar-dashboard";
+  } else if (lowerRole.includes('registrar')) {
+    return "/registrar-dashboard";
+  } else if (lowerRole.includes('commissioner')) {
+    return "/commissioner-dashboard";
+  } else if (lowerRole.includes('payment')) {
+    return "/payment-dashboard";
+  } else if (lowerRole.includes('provincial') && lowerRole.includes('claims') || lowerRole.includes('provincialclaimsofficer')) {
+    return "/pco-dashboard";
+  } else if (lowerRole.includes('agent') || lowerRole.includes('lawyer')) {
+    return "/agent-lawyer-dashboard";
+  } else if (lowerRole.includes('data entry')) {
+    return "/data-entry-dashboard";
+  } else if (lowerRole.includes('tribunal')) {
+    return "/tribunal-dashboard";
+  } else if (lowerRole.includes('fos')) {
+    return "/fos-dashboard";
+  } else if (lowerRole.includes('insurance')) {
+    return "/insurance-dashboard";
+  } else if (lowerRole.includes('solicitor')) {
+    return "/solicitor-dashboard";
+  } else if (lowerRole.includes('claims manager')) {
+    return "/claims-manager-dashboard";
+  } else if (lowerRole.includes('statistical')) {
+    return "/statistical-dashboard";
+  }
+  
+  return "/dashboard";
 };
 
 export default Dashboard;
