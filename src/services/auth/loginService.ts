@@ -96,6 +96,19 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       if (!authError) {
         console.log("Supabase auth session created successfully");
         sessionStorage.setItem('currentUserEmail', email);
+        
+        // Get the user mapping and role
+        const { data: mappingData } = await supabase
+          .from('user_mapping')
+          .select('owc_user_id')
+          .eq('auth_user_id', authData.user.id)
+          .maybeSingle();
+        
+        if (mappingData?.owc_user_id) {
+          console.log("Found owc_user_id:", mappingData.owc_user_id);
+          userData.owc_user_id = mappingData.owc_user_id;
+        }
+        
         return { 
           data: authData, 
           error: null,
