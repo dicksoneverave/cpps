@@ -77,14 +77,10 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   
   console.log("Creating user mapping with data:", mappingData);
   
-  // Fix: Instead of trying to insert into the view, use a stored procedure or direct table insert
-  // For now, assuming there might be an underlying table with the same structure
-  const { error: newMappingError } = await supabase.rpc('create_user_mapping', {
-    p_auth_user_id: selectedUser.id,
-    p_owc_user_id: owcUserId,
-    p_name: selectedUser.name || selectedUser.email.split('@')[0],
-    p_email: selectedUser.email
-  }).single();
+  // Insert directly into the user_mapping table instead of using an RPC
+  const { error: newMappingError } = await supabase
+    .from('user_mapping')
+    .insert([mappingData]);
     
   if (newMappingError) {
     console.error("Error creating user mapping:", newMappingError);
