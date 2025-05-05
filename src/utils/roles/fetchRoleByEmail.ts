@@ -21,6 +21,13 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return "OWC Admin";
     }
     
+    // Special case for vagi@bsp.com.pg - make sure we get the correct group
+    if (email === "vagi@bsp.com.pg") {
+      console.log("Provincial Claims Officer email detected");
+      saveRoleToSessionStorage("ProvincialClaimsOfficer");
+      return "ProvincialClaimsOfficer";
+    }
+    
     // First try user_mapping table which is the most direct way
     console.log("Checking user_mapping for email:", email);
     const { data: mappingData, error: mappingError } = await supabase
@@ -57,6 +64,13 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       
       const groupId = userGroupMapData.group_id;
       console.log("Found group_id:", groupId, "for OWC user ID:", mappingData.owc_user_id);
+      
+      // Special handling for known group IDs
+      if (groupId === 19) {
+        console.log("Group ID 19 found, assigning ProvincialClaimsOfficer role");
+        saveRoleToSessionStorage("ProvincialClaimsOfficer");
+        return "ProvincialClaimsOfficer";
+      }
       
       // Now fetch the group title from owc_usergroups
       console.log("Fetching group title from owc_usergroups with group_id:", groupId);

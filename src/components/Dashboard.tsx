@@ -8,6 +8,7 @@ import EmployerDashboard from "./dashboards/EmployerDashboard";
 import RegistrarDashboard from "./dashboards/RegistrarDashboard";
 import CommissionerDashboard from "./dashboards/CommissionerDashboard";
 import PaymentDashboard from "./dashboards/PaymentDashboard";
+import ProvincialClaimsOfficerDashboard from "./dashboards/ProvincialClaimsOfficerDashboard";
 import ClaimsChart from "./dashboards/ClaimsCharts";
 
 interface DashboardProps {
@@ -66,6 +67,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       return <CommissionerDashboard />;
     } else if (lowerCaseRole.includes('payment')) {
       return <PaymentDashboard />;
+    } else if (lowerCaseRole.includes('provincialclaimsofficer') || lowerCaseRole.includes('provincial claims officer')) {
+      return <ProvincialClaimsOfficerDashboard />;
     }
     
     // If no specific dashboard found, use the DynamicDashboard
