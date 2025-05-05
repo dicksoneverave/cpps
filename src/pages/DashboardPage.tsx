@@ -6,46 +6,36 @@ import Dashboard from "@/components/Dashboard";
 import Navbar from "@/components/Navbar";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchRoleByEmail, getRoleFromSessionStorage } from "@/utils/roleUtils";
 
 const DashboardPage: React.FC = () => {
   const { user, loading, userRole } = useAuth();
   const navigate = useNavigate();
   const [isCheckingRole, setIsCheckingRole] = useState(false);
+  const [displayRole, setDisplayRole] = useState<string | null>(null);
 
   useEffect(() => {
+    // Try to get the role from session storage first
+    const storedRole = getRoleFromSessionStorage();
+    if (storedRole) {
+      console.log("Using stored role:", storedRole);
+      setDisplayRole(storedRole);
+    } else {
+      setDisplayRole(userRole);
+    }
+
     const checkUserRole = async () => {
       if (!user) return;
       
       setIsCheckingRole(true);
       
       try {
-        // Double-check user role in case it wasn't properly loaded
-        if (!userRole && user.email !== "administrator@gmail.com") {
-          console.log("Verifying role for user:", user.email);
-          
-          // Try to get owc_user_id from user_mapping
-          const { data: mappingData } = await supabase
-            .from('user_mapping')
-            .select('owc_user_id')
-            .eq('email', user.email)
-            .maybeSingle();
-            
-          if (mappingData?.owc_user_id) {
-            console.log("Found owc_user_id:", mappingData.owc_user_id);
-            
-            // Get group from owc_user_usergroup_map
-            const { data: groupData } = await supabase
-              .from('owc_user_usergroup_map')
-              .select('group_id, owc_usergroups:owc_usergroups(title)')
-              .eq('user_id', mappingData.owc_user_id)
-              .maybeSingle();
-              
-            if (groupData?.owc_usergroups) {
-              console.log("Found group data:", groupData);
-            } else {
-              console.log("No group data found for user");
-            }
-          }
+        // If we don't have a role yet, try to fetch it directly
+        if (!displayRole && !userRole && user.email !== "administrator@gmail.com") {
+          console.log("No role found in context or session, fetching directly...");
+          const fetchedRole = await fetchRoleByEmail(user.email || "");
+          console.log("Directly fetched role:", fetchedRole);
+          setDisplayRole(fetchedRole);
         }
       } catch (error) {
         console.error("Error checking user role:", error);
@@ -57,10 +47,10 @@ const DashboardPage: React.FC = () => {
     if (user && !loading) {
       checkUserRole();
     }
-  }, [user, userRole, loading]);
+  }, [user, userRole, loading, displayRole]);
   
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !isCheckingRole) {
       if (!user) {
         // Redirect to login if no user
         console.log("No user found, redirecting to login");
@@ -75,7 +65,7 @@ const DashboardPage: React.FC = () => {
         return;
       }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, isCheckingRole]);
 
   if (loading || isCheckingRole) {
     return (
@@ -90,7 +80,7 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
       <div className="flex-1 container mx-auto p-4">
-        <Dashboard userRole={userRole || ""} />
+        <Dashboard userRole={displayRole || ""} />
       </div>
     </div>
   );

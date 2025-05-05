@@ -118,33 +118,38 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
     
     if (mappingError) {
       console.error("Error in auth_user_id mapping lookup:", mappingError);
+      return null;
     }
     
-    if (mappingData?.owc_user_id) {
-      console.log("Found mapping for auth ID:", userId, "OWC ID:", mappingData.owc_user_id);
+    if (!mappingData?.owc_user_id) {
+      console.error("No owc_user_id found for auth_user_id:", userId);
+      return null;
+    }
+    
+    console.log("Found mapping for auth ID:", userId, "OWC ID:", mappingData.owc_user_id);
+    
+    const { data: userGroupData, error: groupError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select(`
+        group_id,
+        owc_usergroups:owc_usergroups(title)
+      `)
+      .eq('user_id', mappingData.owc_user_id)
+      .maybeSingle();
       
-      const { data: userGroupData, error: groupError } = await supabase
-        .from('owc_user_usergroup_map')
-        .select(`
-          group_id,
-          owc_usergroups:owc_usergroups(title)
-        `)
-        .eq('user_id', mappingData.owc_user_id)
-        .maybeSingle();
-        
-      if (groupError) {
-        console.error("Error in group lookup for mapped user:", groupError);
-      }
-        
-      if (userGroupData?.owc_usergroups) {
-        const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
-        console.log("Found group for auth ID:", userId, "Group:", groupData?.title);
-        return groupData?.title || null;
-      }
+    if (groupError) {
+      console.error("Error in group lookup for mapped user:", groupError);
+      return null;
+    }
+      
+    if (!userGroupData?.owc_usergroups) {
+      console.error("No group found for owc_user_id:", mappingData.owc_user_id);
+      return null;
     }
     
-    console.log("No role found for auth user ID:", userId);
-    return null;
+    const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
+    console.log("Found group for auth ID:", userId, "Group:", groupData?.title);
+    return groupData?.title || null;
   } catch (e) {
     console.error("Error in auth_user_id-based role lookup:", e);
     return null;

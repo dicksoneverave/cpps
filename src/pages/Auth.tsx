@@ -7,6 +7,7 @@ import LoginForm from "@/components/auth/LoginForm";
 import AuthHeader from "@/components/auth/AuthHeader";
 import { loginWithSupabaseAuth } from "@/services/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchRoleByEmail, saveRoleToSessionStorage } from "@/utils/roleUtils";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -54,10 +55,21 @@ const Auth = () => {
         if (email === "administrator@gmail.com") {
           toast({
             title: "Login successful",
-            description: "Welcome back, Administrator! (Standard password: dixman007)",
+            description: "Welcome back, Administrator!",
           });
+          
+          // Store the admin role
+          saveRoleToSessionStorage("OWC Admin");
           navigate("/admin");
           return;
+        }
+        
+        // For regular users, fetch their role
+        const userRole = await fetchRoleByEmail(email);
+        console.log("Fetched user role:", userRole);
+        
+        if (userRole) {
+          saveRoleToSessionStorage(userRole);
         }
         
         // Success message for all other users
