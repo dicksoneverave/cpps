@@ -131,16 +131,16 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
         throw updateError;
       }
     } else {
-      // Insert new mapping
+      // Insert new mapping - use the most basic approach possible to avoid type issues
       const groupId = parseInt(selectedGroupId);
       
-      // Fix the TypeScript error by using a simple object literal without type annotation
+      // Use explicit casting to any to avoid TypeScript recursion
       const { error: insertError } = await supabase
         .from('owc_user_usergroup_map')
-        .insert({
-          user_id: owcUserId,
-          group_id: groupId
-        });
+        .insert({ 
+          user_id: owcUserId as number, 
+          group_id: groupId as number 
+        } as any);
         
       if (insertError) {
         console.error("Error inserting user group mapping:", insertError);
