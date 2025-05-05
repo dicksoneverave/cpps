@@ -73,7 +73,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       console.log("Found group_id:", groupId, "for auth_user_id:", authUserId);
       
       // Step 3: Handle common role mappings directly
-      const groupIdMappings: Record<number, string> = {
+      const groupIdMappings: {[key: number]: string} = {
         1: "OWC Admin", 
         2: "Employer",
         3: "Registrar",

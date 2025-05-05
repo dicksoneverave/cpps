@@ -14,7 +14,7 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
       return null;
     }
     
-    // Step 1 & 2: Query the owc_user_usergroup_map table with auth_user_id
+    // Step 1: Query the owc_user_usergroup_map table with auth_user_id
     const { data: userGroupData, error: userGroupError } = await supabase
       .from('owc_user_usergroup_map')
       .select('group_id')

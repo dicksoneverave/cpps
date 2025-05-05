@@ -5,9 +5,6 @@ import { verifyPassword, hashPassword } from "@/utils/passwordUtils";
 // Define interfaces for our query results
 export interface UserGroupData {
   group_id: number;
-  owc_usergroups: {
-    title: string;
-  } | null;
 }
 
 export interface LoginResponse {
@@ -121,7 +118,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
           .maybeSingle();
         
         if (userGroupData?.group_id) {
-          // Step 3: Get the group title from owc_usergroups
+          // Step 3: Get the group title from owc_usergroups using group_id
           const { data: groupData } = await supabase
             .from('owc_usergroups')
             .select('title')

@@ -14,7 +14,7 @@ export const getUserRoleFromMapping = async (userId: string): Promise<string | n
     
     console.log("Looking up role by auth user ID:", userId);
     
-    // Step 1 & 2: First query to get group_id from owc_user_usergroup_map
+    // Step 1: First query to get group_id from owc_user_usergroup_map
     const { data: userGroupData, error: userGroupError } = await supabase
       .from('owc_user_usergroup_map')
       .select('group_id')
@@ -31,7 +31,7 @@ export const getUserRoleFromMapping = async (userId: string): Promise<string | n
       return null;
     }
     
-    // Step 3: Query to get title from owc_usergroups
+    // Step 3: Query to get title from owc_usergroups using group_id
     const { data: groupData, error: groupError } = await supabase
       .from('owc_usergroups')
       .select('title')
