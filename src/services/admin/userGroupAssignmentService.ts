@@ -37,7 +37,7 @@ export const fetchUserGroupsForAdmin = async (): Promise<UserGroup[]> => {
 
     // Convert the id to string to match UserGroup type
     return data.map((group) => ({
-      id: group.id.toString(), // Convert to string
+      id: group.id.toString(), // Convert to string to match updated UserGroup type
       title: group.title || "",
     }));
   } catch (error) {

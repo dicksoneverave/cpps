@@ -2,7 +2,7 @@
 import { User as SupabaseUser } from "@supabase/supabase-js";
 
 export interface UserGroup {
-  id: number;
+  id: string; // Changed from number to string to match how we're using it
   title: string;
 }
 
