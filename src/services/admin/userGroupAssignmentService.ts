@@ -77,10 +77,14 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   
   console.log("Creating user mapping with data:", mappingData);
   
-  // Fix: use an array for inserting data to match expected type
-  const { error: newMappingError } = await supabase
-    .from('user_mapping')
-    .insert([mappingData]);
+  // Fix: Instead of trying to insert into the view, use a stored procedure or direct table insert
+  // For now, assuming there might be an underlying table with the same structure
+  const { error: newMappingError } = await supabase.rpc('create_user_mapping', {
+    p_auth_user_id: selectedUser.id,
+    p_owc_user_id: owcUserId,
+    p_name: selectedUser.name || selectedUser.email.split('@')[0],
+    p_email: selectedUser.email
+  }).single();
     
   if (newMappingError) {
     console.error("Error creating user mapping:", newMappingError);
@@ -116,7 +120,7 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
       throw updateError;
     }
   } else {
-    // Insert new mapping - use array for inserting data
+    // Insert new mapping
     const { error: insertError } = await supabase
       .from('owc_user_usergroup_map')
       .insert([{
