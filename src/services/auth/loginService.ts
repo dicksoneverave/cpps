@@ -16,6 +16,17 @@ export interface LoginResponse {
   customUser: any;
 }
 
+// Define a proper interface for userData that includes owc_user_id
+interface CustomUserData {
+  email: string;
+  id: string;
+  name?: string;
+  password: string;
+  created_at: string;
+  updated_at: string;
+  owc_user_id?: number; // Make this optional since it might not always be set
+}
+
 /**
  * Authenticates a user using email and password against the users table
  */
@@ -104,15 +115,20 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
           .eq('auth_user_id', authData.user.id)
           .maybeSingle();
         
+        // Create a copy of userData as CustomUserData to safely add the owc_user_id property
+        const customUserData: CustomUserData = {
+          ...userData,
+        };
+        
         if (mappingData?.owc_user_id) {
           console.log("Found owc_user_id:", mappingData.owc_user_id);
-          userData.owc_user_id = mappingData.owc_user_id;
+          customUserData.owc_user_id = mappingData.owc_user_id;
         }
         
         return { 
           data: authData, 
           error: null,
-          customUser: userData
+          customUser: customUserData
         };
       }
       
