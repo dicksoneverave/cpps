@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { loginWithSupabaseAuth } from "@/services/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchRoleByEmail, saveRoleToSessionStorage } from "@/utils/roles";
+import { getDashboardPathByGroupTitle } from "@/services/admin/userGroupService";
 
 export const useAuth = () => {
   const [email, setEmail] = useState("");
@@ -90,7 +90,7 @@ export const useAuth = () => {
       saveRoleToSessionStorage(knownRole);
       
       // Get dashboard path for the role
-      const dashboardPath = getDashboardPathFromRole(knownRole);
+      const dashboardPath = getDashboardPathByGroupTitle(knownRole);
       console.log(`Redirecting to ${dashboardPath} for role ${knownRole}`);
       navigate(dashboardPath, { replace: true });
       return;
@@ -98,7 +98,7 @@ export const useAuth = () => {
     
     // Role-specific redirects
     if (role) {
-      const dashboardPath = getDashboardPathFromRole(role);
+      const dashboardPath = getDashboardPathByGroupTitle(role);
       console.log(`Redirecting to ${dashboardPath} for role ${role}`);
       navigate(dashboardPath, { replace: true });
     } else {
