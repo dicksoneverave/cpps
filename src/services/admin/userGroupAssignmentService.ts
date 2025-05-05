@@ -1,194 +1,159 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserGroupAssignment, UserData } from "@/types/adminTypes";
+import { UserData, UserGroup } from "@/types/adminTypes";
 
-// Fetch user group assignments
-export const fetchUserGroupAssignments = async (): Promise<UserGroupAssignment[]> => {
+export const fetchAvailableUsers = async (): Promise<UserData[]> => {
   try {
     const { data, error } = await supabase
-      .from('owc_user_usergroup_map')
-      .select('*');
-    
-    if (error) throw error;
-    
-    return data || [];
+      .from("users")
+      .select("*");
+
+    if (error) {
+      console.error("Error fetching available users:", error);
+      return [];
+    }
+
+    return data.map((user) => ({
+      id: user.id,
+      name: user.name || "",
+      email: user.email || "",
+    }));
   } catch (error) {
-    console.error("Error fetching user group assignments:", error);
-    throw error;
+    console.error("Failed to fetch available users:", error);
+    return [];
   }
 };
 
-// Add a new user group assignment
-export const addUserGroupAssignment = async (assignment: UserGroupAssignment): Promise<UserGroupAssignment> => {
+export const fetchUserGroupsForAdmin = async (): Promise<UserGroup[]> => {
   try {
     const { data, error } = await supabase
-      .from('owc_user_usergroup_map')
-      .insert([assignment])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    return data as UserGroupAssignment;
+      .from("owc_usergroups")
+      .select("id, title");
+
+    if (error) {
+      console.error("Error fetching user groups:", error);
+      return [];
+    }
+
+    return data.map((group) => ({
+      id: group.id.toString(),
+      title: group.title || "",
+    }));
   } catch (error) {
-    console.error("Error adding user group assignment:", error);
-    throw error;
+    console.error("Failed to fetch user groups:", error);
+    return [];
   }
 };
 
-// Update an existing user group assignment
-export const updateUserGroupAssignment = async (id: number, updates: Partial<UserGroupAssignment>): Promise<UserGroupAssignment | null> => {
+// Accept either UserData or string (userId)
+export const assignUserToGroup = async (
+  user: UserData | string,
+  groupId: string
+): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from('owc_user_usergroup_map')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    return data as UserGroupAssignment;
-  } catch (error) {
-    console.error("Error updating user group assignment:", error);
-    throw error;
-  }
-};
-
-// Delete a user group assignment
-export const deleteUserGroupAssignment = async (id: number): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('owc_user_usergroup_map')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    console.error("Error deleting user group assignment:", error);
-    return false;
-  }
-};
-
-// Assign a user to a group - fixed to properly handle UserData or string
-export const assignUserToGroup = async (user: UserData | string, groupId: string | number): Promise<boolean> => {
-  try {
-    // Extract the user ID based on the input type
     const userId = typeof user === 'string' ? user : user.id;
     
-    // Convert groupId to number if it's a string
-    const numericGroupId = typeof groupId === 'string' ? parseInt(groupId, 10) : groupId;
-    
-    // First, check if the assignment already exists
-    const { data: existingAssignment, error: checkError } = await supabase
+    // Check if the user is already in this group
+    const { data: existingMapping, error: checkError } = await supabase
       .from('owc_user_usergroup_map')
       .select('*')
       .eq('auth_user_id', userId)
-      .eq('group_id', numericGroupId)
-      .single();
+      .eq('group_id', groupId);
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking for existing assignment:', checkError);
+    if (checkError) {
+      console.error("Error checking existing user group mapping:", checkError);
       return false;
     }
 
-    // If assignment already exists, return success
-    if (existingAssignment) {
+    // If user is already in this group, no need to insert
+    if (existingMapping && existingMapping.length > 0) {
+      console.log("User is already assigned to this group");
       return true;
     }
-    
+
+    // Insert new mapping
     const { error } = await supabase
       .from('owc_user_usergroup_map')
-      .insert([{ auth_user_id: userId, group_id: numericGroupId }]);
-    
+      .insert([
+        { auth_user_id: userId, group_id: parseInt(groupId) }
+      ]);
+
     if (error) {
       console.error("Error assigning user to group:", error);
       return false;
     }
-    
+
+    console.log(`User ${userId} successfully assigned to group ${groupId}`);
     return true;
   } catch (error) {
-    console.error("Error assigning user to group:", error);
+    console.error("Failed to assign user to group:", error);
     return false;
   }
 };
 
-// Simplified function for assignUserToGroup to avoid circular dependencies
-export const assignUserToGroupSimplified = async (userId: string, groupId: number): Promise<boolean> => {
-  try {
-    // Check if the assignment already exists
-    const { data: existingAssignment, error: checkError } = await supabase
-      .from('owc_user_usergroup_map')
-      .select('*')
-      .eq('auth_user_id', userId)
-      .eq('group_id', groupId)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking for existing assignment:', checkError);
-      return false;
-    }
-
-    // If assignment already exists, return success
-    if (existingAssignment) {
-      return true;
-    }
-    
-    // Create a new mapping
-    const { error } = await supabase
-      .from('owc_user_usergroup_map')
-      .insert([{ auth_user_id: userId, group_id: groupId }]);
-    
-    if (error) {
-      console.error("Error assigning user to group:", error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error assigning user to group:", error);
-    return false;
-  }
-};
-
-// Unassign a user from a group
-export const unassignUserFromGroup = async (userId: string, groupId: number): Promise<boolean> => {
+export const removeUserFromGroup = async (
+  user: UserData,
+  groupId: string
+): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('owc_user_usergroup_map')
       .delete()
-      .match({ auth_user_id: userId, group_id: groupId });
-    
+      .eq('auth_user_id', user.id)
+      .eq('group_id', groupId);
+
     if (error) {
-      console.error("Error unassigning user from group:", error);
+      console.error("Error removing user from group:", error);
       return false;
     }
-    
+
+    console.log(`User ${user.id} successfully removed from group ${groupId}`);
     return true;
   } catch (error) {
-    console.error("Error unassigning user from group:", error);
+    console.error("Failed to remove user from group:", error);
     return false;
   }
 };
 
-// Get users by group ID
-export const getUsersByGroupId = async (groupId: number): Promise<any[]> => {
-    try {
-        const { data, error } = await supabase
-            .from('owc_user_usergroup_map')
-            .select('auth_user_id')
-            .eq('group_id', groupId);
+export const fetchUsersInGroup = async (groupId: string): Promise<UserData[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('owc_user_usergroup_map')
+      .select(`
+        auth_user_id
+      `)
+      .eq('group_id', groupId);
 
-        if (error) {
-            console.error("Error fetching users by group ID:", error);
-            return [];
-        }
-
-        return data || [];
-    } catch (error) {
-        console.error("Error fetching users by group ID:", error);
-        return [];
+    if (error) {
+      console.error("Error fetching users in group:", error);
+      return [];
     }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Extract user IDs
+    const userIds = data.map(row => row.auth_user_id);
+
+    // Fetch user details
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .in('id', userIds);
+
+    if (userError) {
+      console.error("Error fetching user details:", userError);
+      return [];
+    }
+
+    return userData.map(user => ({
+      id: user.id,
+      name: user.name || "",
+      email: user.email || "",
+    }));
+  } catch (error) {
+    console.error("Failed to fetch users in group:", error);
+    return [];
+  }
 };
