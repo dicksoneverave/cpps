@@ -22,7 +22,50 @@ export interface LoginResponse {
 export const loginWithSupabaseAuth = async (email: string, password: string): Promise<LoginResponse> => {
   try {
     console.log("Attempting authentication for:", email);
-    // Check against users table
+    
+    // Special case for administrator
+    if (email === "administrator@gmail.com" && password === "dixman007") {
+      console.log("Admin login detected, creating admin session");
+      try {
+        // Try to create a Supabase auth session
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        // Even if Supabase auth fails, we'll proceed for the admin user
+        if (!authError) {
+          console.log("Admin session created successfully with Supabase auth");
+          sessionStorage.setItem('currentUserEmail', email);
+          return {
+            data: authData,
+            error: null,
+            customUser: {
+              email,
+              name: "Administrator",
+              role: "OWC Admin"
+            }
+          };
+        }
+      } catch (authError) {
+        console.error("Supabase auth error for admin:", authError);
+      }
+      
+      // Return success for admin even if Supabase auth failed
+      console.log("Proceeding with admin login via custom authentication");
+      sessionStorage.setItem('currentUserEmail', email);
+      return {
+        data: null,
+        error: null,
+        customUser: {
+          email,
+          name: "Administrator",
+          role: "OWC Admin"
+        }
+      };
+    }
+    
+    // Normal user authentication flow
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -52,6 +95,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       
       if (!authError) {
         console.log("Supabase auth session created successfully");
+        sessionStorage.setItem('currentUserEmail', email);
         return { 
           data: authData, 
           error: null,
@@ -68,6 +112,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
     
     // Return success with the user data even if session creation failed
     console.log("Returning successful login with custom user data");
+    sessionStorage.setItem('currentUserEmail', email);
     return { 
       data: null, 
       error: null,

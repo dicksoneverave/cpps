@@ -39,7 +39,7 @@ const Auth = () => {
       // Check if the user is an administrator
       const storedRole = sessionStorage.getItem('userRole');
       
-      if (storedRole && storedRole.toLowerCase().includes('admin')) {
+      if (email === "administrator@gmail.com" || (storedRole && storedRole.toLowerCase().includes('admin'))) {
         console.log("Redirecting admin to /admin");
         navigate("/admin", { replace: true });
       } else {
@@ -47,7 +47,7 @@ const Auth = () => {
         navigate("/dashboard", { replace: true });
       }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, email]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +63,7 @@ const Auth = () => {
         const userData = response.customUser || response.data?.user;
         console.log("Login successful for:", userData?.email || userData?.name);
         
-        // Check for administrator email
+        // Special handling for administrator
         if (email === "administrator@gmail.com") {
           toast({
             title: "Login successful",

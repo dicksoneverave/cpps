@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,11 +31,11 @@ const DashboardPage: React.FC = () => {
         console.log("Checking session in DashboardPage...");
         const { data } = await supabase.auth.getSession();
         
-        if (!data.session) {
-          console.log("No session found in DashboardPage, redirecting to login");
+        if (!data.session && !sessionStorage.getItem('userRole')) {
+          console.log("No session or role found in DashboardPage, redirecting to login");
           navigate("/login", { replace: true });
           return;
-        } else {
+        } else if (data.session) {
           console.log("Session found in DashboardPage:", data.session.user.email);
           // Special case for administrator@gmail.com
           if (data.session.user.email === "administrator@gmail.com") {
@@ -44,6 +43,9 @@ const DashboardPage: React.FC = () => {
             navigate("/admin", { replace: true });
             return;
           }
+          // Otherwise, we're good to stay on dashboard
+        } else {
+          console.log("No Supabase session but found role in sessionStorage, allowing dashboard access");
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -57,17 +59,21 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     const checkUserRole = async () => {
-      if (!user) return;
+      if (!user && !getRoleFromSessionStorage()) return;
       
       setIsCheckingRole(true);
       
       try {
         // If we don't have a role yet, try to fetch it directly
-        if (!displayRole && !userRole && user.email !== "administrator@gmail.com") {
-          console.log("No role found in context or session, fetching directly...");
-          const fetchedRole = await fetchRoleByEmail(user.email || "");
-          console.log("Directly fetched role:", fetchedRole);
-          setDisplayRole(fetchedRole);
+        if (!displayRole && !userRole) {
+          const email = user?.email || sessionStorage.getItem('currentUserEmail');
+          
+          if (email && email !== "administrator@gmail.com") {
+            console.log("No role found in context or session, fetching directly...");
+            const fetchedRole = await fetchRoleByEmail(email);
+            console.log("Directly fetched role:", fetchedRole);
+            setDisplayRole(fetchedRole);
+          }
         }
       } catch (error) {
         console.error("Error checking user role:", error);
@@ -76,7 +82,7 @@ const DashboardPage: React.FC = () => {
       }
     };
     
-    if (user && !loading) {
+    if (!loading) {
       checkUserRole();
     }
   }, [user, userRole, loading, displayRole]);
@@ -94,7 +100,7 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
       <div className="flex-1 container mx-auto p-4">
-        <Dashboard userRole={displayRole || ""} />
+        <Dashboard userRole={displayRole || "User"} />
       </div>
     </div>
   );

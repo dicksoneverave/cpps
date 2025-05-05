@@ -49,7 +49,7 @@ export const useUserRole = () => {
       console.log("Fetched role result:", role);
       
       setUserRole(role);
-      saveRoleToSessionStorage(role || "");
+      saveRoleToSessionStorage(role || "User");
       
       // Update admin status based on role
       const adminStatus = isAdminRole(role);

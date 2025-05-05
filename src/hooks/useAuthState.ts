@@ -21,6 +21,9 @@ export const useAuthState = () => {
         setUser(currentSession.user);
         
         if (currentSession.user) {
+          // Save current user email to session storage for persistence
+          sessionStorage.setItem('currentUserEmail', currentSession.user.email || "");
+          
           // Directly set admin flag for administrator@gmail.com
           if (currentSession.user.email === "administrator@gmail.com") {
             console.log("Setting admin flag for administrator@gmail.com");
@@ -31,9 +34,19 @@ export const useAuthState = () => {
           }
         }
       } else {
-        // Clear session data if no active session
-        setSession(null);
-        setUser(null);
+        // Try to work with session storage if no active Supabase session
+        const storedRole = sessionStorage.getItem('userRole');
+        const storedEmail = sessionStorage.getItem('currentUserEmail');
+        
+        if (storedRole && storedEmail) {
+          console.log("No Supabase session but found stored role and email:", storedRole, storedEmail);
+          // We can work with stored information despite no Supabase session
+        } else {
+          console.log("No session data found in Supabase or session storage");
+          // Clear session data if no active session
+          setSession(null);
+          setUser(null);
+        }
       }
     } catch (error) {
       console.error("Error initializing auth:", error);
@@ -56,6 +69,9 @@ export const useAuthState = () => {
           
           // If session changes, fetch the user role
           if (newSession.user) {
+            // Save current user email to session storage for persistence
+            sessionStorage.setItem('currentUserEmail', newSession.user.email || "");
+            
             // Directly set admin flag for administrator@gmail.com
             if (newSession.user.email === "administrator@gmail.com") {
               console.log("Setting admin flag on auth state change for administrator@gmail.com");
@@ -68,9 +84,11 @@ export const useAuthState = () => {
               }, 0);
             }
           }
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           // Clear session data on logout
+          console.log("User signed out, clearing session data");
           sessionStorage.removeItem('userRole');
+          sessionStorage.removeItem('currentUserEmail');
           setSession(null);
           setUser(null);
           setIsAdmin(false);
