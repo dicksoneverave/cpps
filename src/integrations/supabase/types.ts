@@ -1490,14 +1490,17 @@ export type Database = {
       }
       owc_user_usergroup_map: {
         Row: {
+          auth_user_id: string | null
           group_id: number
           user_id: number
         }
         Insert: {
+          auth_user_id?: string | null
           group_id: number
           user_id: number
         }
         Update: {
+          auth_user_id?: string | null
           group_id?: number
           user_id?: number
         }

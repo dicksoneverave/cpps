@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveRoleToSessionStorage } from "./sessionStorage";
 
 /**
- * Fetch user role using auth user ID mapping
+ * Fetch user role using auth user ID mapping - now using direct auth_user_id in owc_user_usergroup_map
  */
 export const fetchRoleByAuthId = async (userId: string): Promise<string | null> => {
   try {
@@ -14,48 +14,40 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
       return null;
     }
     
-    // Step 1: Get the owc_user_id from user_mapping
-    console.log("Fetching owc_user_id from user_mapping with auth_user_id:", userId);
-    const { data: mappingData, error: mappingError } = await supabase
-      .from('user_mapping')
-      .select('owc_user_id')
+    // Now we can directly query the owc_user_usergroup_map table with auth_user_id
+    console.log("Directly querying owc_user_usergroup_map with auth_user_id:", userId);
+    const { data: userGroupMapData, error: groupMapError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select(`
+        group_id,
+        owc_usergroups:owc_usergroups(title)
+      `)
       .eq('auth_user_id', userId)
       .maybeSingle();
     
-    if (mappingError) {
-      console.error("Error in auth_user_id mapping lookup:", mappingError);
-      return null;
-    }
-    
-    if (!mappingData?.owc_user_id) {
-      console.error("No owc_user_id found for auth_user_id:", userId);
-      return null;
-    }
-    
-    console.log("Found mapping for auth ID:", userId, "OWC ID:", mappingData.owc_user_id);
-    
-    // Step 2: Get the group_id from owc_user_usergroup_map
-    console.log("Fetching group_id from owc_user_usergroup_map with user_id:", mappingData.owc_user_id);
-    const { data: userGroupMapData, error: groupMapError } = await supabase
-      .from('owc_user_usergroup_map')
-      .select('group_id')
-      .eq('user_id', mappingData.owc_user_id)
-      .maybeSingle();
-      
     if (groupMapError) {
-      console.error("Error in group lookup for mapped user:", groupMapError);
+      console.error("Error in direct group lookup:", groupMapError);
       return null;
     }
     
     if (!userGroupMapData) {
-      console.error("No group mapping found for OWC user ID:", mappingData.owc_user_id);
+      console.error("No group mapping found for auth_user_id:", userId);
       return null;
     }
     
     const groupId = userGroupMapData.group_id;
-    console.log("Found group_id:", groupId, "for OWC user ID:", mappingData.owc_user_id);
+    console.log("Found group_id:", groupId, "directly from auth_user_id:", userId);
     
-    // Step 3: Get the group title from owc_usergroups
+    if (userGroupMapData?.owc_usergroups) {
+      const groupData = userGroupMapData.owc_usergroups as unknown as { title?: string };
+      if (groupData?.title) {
+        console.log("Found group:", groupData.title);
+        saveRoleToSessionStorage(groupData.title);
+        return groupData.title;
+      }
+    }
+    
+    // Fallback to fetching title separately if join didn't work
     console.log("Fetching group title from owc_usergroups with group_id:", groupId);
     const { data: groupData, error: groupError } = await supabase
       .from('owc_usergroups')

@@ -108,17 +108,36 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
         console.log("Supabase auth session created successfully");
         sessionStorage.setItem('currentUserEmail', email);
         
-        // Get the user mapping and role
+        // Create a copy of userData as CustomUserData to safely add the owc_user_id property
+        const customUserData: CustomUserData = {
+          ...userData,
+        };
+        
+        // With our database update, we can now directly get user's role from owc_user_usergroup_map
+        const { data: userGroupData } = await supabase
+          .from('owc_user_usergroup_map')
+          .select(`
+            group_id,
+            owc_usergroups:owc_usergroups(title)
+          `)
+          .eq('auth_user_id', authData.user.id)
+          .maybeSingle();
+        
+        if (userGroupData?.owc_usergroups) {
+          const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
+          if (groupData?.title) {
+            console.log("Found user role directly:", groupData.title);
+            customUserData.role = groupData.title;
+            sessionStorage.setItem('userRole', groupData.title);
+          }
+        }
+        
+        // Still get and store owc_user_id for backward compatibility
         const { data: mappingData } = await supabase
           .from('user_mapping')
           .select('owc_user_id')
           .eq('auth_user_id', authData.user.id)
           .maybeSingle();
-        
-        // Create a copy of userData as CustomUserData to safely add the owc_user_id property
-        const customUserData: CustomUserData = {
-          ...userData,
-        };
         
         if (mappingData?.owc_user_id) {
           console.log("Found owc_user_id:", mappingData.owc_user_id);

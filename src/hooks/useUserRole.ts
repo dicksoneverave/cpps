@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { fetchUserRoleComprehensive } from "@/services/auth";
 import { isAdminRole, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roles";
@@ -43,7 +44,7 @@ export const useUserRole = () => {
         return;
       }
       
-      // Try to get the role using comprehensive lookup
+      // Try to get the role using direct auth_user_id lookup first, then fallback to other methods
       console.log("Fetching role comprehensively for:", email);
       const role = await fetchUserRoleComprehensive(userId, email);
       console.log("Fetched role result:", role);
