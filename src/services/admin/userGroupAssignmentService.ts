@@ -77,12 +77,13 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
   
   console.log("Creating user mapping with data:", mappingData);
   
-  // Since user_mapping might be a view, insert directly with proper formatting
+  // Since user_mapping is a view, we need to handle it using a custom approach
   try {
-    // Direct insert with single object (not array)
+    // Use an upsert operation with ON_CONFLICT which will either create a new entry
+    // or update an existing one if there's a conflict
     const { error } = await supabase
       .from('user_mapping')
-      .insert(mappingData);
+      .upsert([mappingData], { onConflict: 'auth_user_id' });
     
     if (error) {
       console.error("Error creating user mapping:", error);
@@ -123,13 +124,13 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
         throw updateError;
       }
     } else {
-      // Insert new mapping - use object directly, not in array
+      // Insert new mapping
       const { error: insertError } = await supabase
         .from('owc_user_usergroup_map')
-        .insert({
+        .insert([{
           user_id: owcUserId,
           group_id: parseInt(selectedGroupId)
-        });
+        }]);
         
       if (insertError) {
         console.error("Error inserting user group mapping:", insertError);
