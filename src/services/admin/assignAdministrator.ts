@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { assignUserToGroupSimplified } from "./userGroupAssignmentService";
 import { UserData } from "@/types/adminTypes";
 
 /**
@@ -18,16 +17,41 @@ export const assignUserAsAdministrator = async (userData: UserData | string): Pr
     
     console.log(`Assigning user ${userId} as administrator (group ID: ${adminGroupId})...`);
     
-    // Use the simplified function to assign the user to the admin group
-    const success = await assignUserToGroupSimplified(userId, adminGroupId);
+    // Direct implementation to avoid circular dependencies
+    const { data: existingMapping, error: checkError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select('*')
+      .eq('auth_user_id', userId)
+      .single();
     
-    if (success) {
-      console.log(`Successfully assigned user ${userId} as administrator`);
-    } else {
-      console.error(`Failed to assign user ${userId} as administrator`);
+    if (!checkError && existingMapping) {
+      console.log(`User ${userId} already has a group assignment, updating to OWC Admin...`);
+      
+      // Update the existing mapping
+      const { error: updateError } = await supabase
+        .from('owc_user_usergroup_map')
+        .update({ group_id: adminGroupId }) // OWC Admin group ID
+        .eq('auth_user_id', userId);
+      
+      if (updateError) {
+        console.error('Error updating user group assignment:', updateError);
+        return false;
+      }
+      
+      return true;
     }
     
-    return success;
+    // Create a new mapping
+    const { error: insertError } = await supabase
+      .from('owc_user_usergroup_map')
+      .insert({ auth_user_id: userId, group_id: adminGroupId }); // OWC Admin group ID
+    
+    if (insertError) {
+      console.error('Error inserting user group assignment:', insertError);
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error in assignUserAsAdministrator:', error);
     return false;

@@ -115,6 +115,44 @@ export const assignUserToGroup = async (user: UserData | string, groupId: string
   }
 };
 
+// Simplified function for assignUserToGroup to avoid circular dependencies
+export const assignUserToGroupSimplified = async (userId: string, groupId: number): Promise<boolean> => {
+  try {
+    // Check if the assignment already exists
+    const { data: existingAssignment, error: checkError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select('*')
+      .eq('auth_user_id', userId)
+      .eq('group_id', groupId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing assignment:', checkError);
+      return false;
+    }
+
+    // If assignment already exists, return success
+    if (existingAssignment) {
+      return true;
+    }
+    
+    // Create a new mapping
+    const { error } = await supabase
+      .from('owc_user_usergroup_map')
+      .insert([{ auth_user_id: userId, group_id: groupId }]);
+    
+    if (error) {
+      console.error("Error assigning user to group:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error assigning user to group:", error);
+    return false;
+  }
+};
+
 // Unassign a user from a group
 export const unassignUserFromGroup = async (userId: string, groupId: number): Promise<boolean> => {
   try {
