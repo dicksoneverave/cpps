@@ -22,6 +22,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       "registrar@gmail.com": "Registrar",
       "commissioner@gmail.com": "Commissioner",
       "payment@gmail.com": "Payment",
+      "dr@owc.gov.pg": "Commissioner",
       "dr@owc.govpg": "Commissioner"
     };
     

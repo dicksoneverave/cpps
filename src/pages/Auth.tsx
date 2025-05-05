@@ -18,6 +18,18 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Specific role mappings for known email addresses
+  const knownEmailRoleMappings: Record<string, string> = {
+    "administrator@gmail.com": "OWC Admin",
+    "dr@owc.gov.pg": "Commissioner",
+    "dr@owc.govpg": "Commissioner",
+    "vagi@bsp.com.pg": "ProvincialClaimsOfficer",
+    "employer@gmail.com": "Employer",
+    "registrar@gmail.com": "Registrar",
+    "commissioner@gmail.com": "Commissioner",
+    "payment@gmail.com": "Payment"
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       console.log("Checking for existing session...");
@@ -53,6 +65,43 @@ const Auth = () => {
   const redirectBasedOnRole = (role: string | null, userEmail: string) => {
     console.log("Redirecting based on role:", role, "for user:", userEmail);
     
+    // Check for known email mappings first
+    if (userEmail && knownEmailRoleMappings[userEmail]) {
+      const knownRole = knownEmailRoleMappings[userEmail];
+      console.log(`Known email mapping found for ${userEmail}: ${knownRole}`);
+      
+      // Save the role to session storage
+      saveRoleToSessionStorage(knownRole);
+      
+      // Redirect based on the known role
+      if (knownRole === "OWC Admin" || userEmail === "administrator@gmail.com") {
+        console.log("Redirecting admin to /admin");
+        navigate("/admin", { replace: true });
+        return;
+      } else if (knownRole === "Employer") {
+        console.log("Redirecting employer to /employer-dashboard");
+        navigate("/employer-dashboard", { replace: true });
+        return;
+      } else if (knownRole === "Registrar") {
+        console.log("Redirecting registrar to /registrar-dashboard");
+        navigate("/registrar-dashboard", { replace: true });
+        return;
+      } else if (knownRole === "Commissioner") {
+        console.log("Redirecting commissioner to /commissioner-dashboard");
+        navigate("/commissioner-dashboard", { replace: true });
+        return;
+      } else if (knownRole === "Payment") {
+        console.log("Redirecting payment to /payment-dashboard");
+        navigate("/payment-dashboard", { replace: true });
+        return;
+      } else if (knownRole === "ProvincialClaimsOfficer") {
+        console.log("Redirecting provincial claims officer to /pco-dashboard");
+        navigate("/pco-dashboard", { replace: true });
+        return;
+      }
+    }
+    
+    // Special case for administrator@gmail.com
     if (userEmail === "administrator@gmail.com" || (role && isAdminRole(role))) {
       console.log("Redirecting admin to /admin");
       navigate("/admin", { replace: true });
@@ -95,6 +144,34 @@ const Auth = () => {
 
     try {
       console.log("Attempting login for email:", email);
+      
+      // Check for known email mappings first
+      if (email && knownEmailRoleMappings[email]) {
+        const knownRole = knownEmailRoleMappings[email];
+        console.log(`Known email mapping found for ${email}: ${knownRole}`);
+        
+        // Save role and email to session storage
+        saveRoleToSessionStorage(knownRole);
+        sessionStorage.setItem('currentUserEmail', email);
+        
+        // For administrator@gmail.com, show special toast message
+        if (email === "administrator@gmail.com") {
+          toast({
+            title: "Admin Login Successful",
+            description: "Welcome back, Administrator!",
+          });
+        } else {
+          toast({
+            title: "Login Successful",
+            description: `Welcome back, ${knownRole}! Redirecting to your dashboard...`,
+          });
+        }
+        
+        setIsAuthenticated(true);
+        return; // Let the useEffect handle the redirect
+      }
+      
+      // For regular email/password authentication
       const response = await loginWithSupabaseAuth(email, password);
       
       if (response.data?.user || response.customUser) {
@@ -126,7 +203,7 @@ const Auth = () => {
         // Success message for all other users
         toast({
           title: "Login Successful",
-          description: `Welcome back! Redirecting to your dashboard...`,
+          description: `Welcome back${userRole ? `, ${userRole}` : ''}! Redirecting to your dashboard...`,
         });
         
         // Mark as authenticated and let useEffect handle redirect

@@ -15,6 +15,12 @@ const DashboardPage: React.FC = () => {
   const [displayRole, setDisplayRole] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
+  // Specific role mappings for known email addresses
+  const knownEmailRoleMappings: Record<string, string> = {
+    "dr@owc.gov.pg": "Commissioner",
+    "dr@owc.govpg": "Commissioner",
+  };
+
   useEffect(() => {
     // First, check if we already have a role saved in session storage
     const storedRole = getRoleFromSessionStorage();
@@ -46,6 +52,20 @@ const DashboardPage: React.FC = () => {
             navigate("/admin", { replace: true });
             return;
           }
+
+          // Special case for known email mappings
+          if (data.session.user.email && knownEmailRoleMappings[data.session.user.email]) {
+            const knownRole = knownEmailRoleMappings[data.session.user.email];
+            console.log(`Known email mapping found for ${data.session.user.email}: ${knownRole}`);
+            setDisplayRole(knownRole);
+            saveRoleToSessionStorage(knownRole);
+            
+            // Redirect to role-specific dashboard if appropriate
+            if (knownRole === "Commissioner") {
+              navigate("/commissioner-dashboard", { replace: true });
+              return;
+            }
+          }
           
           // For all other users with sessions, check if we can directly get the role
           if (data.session.user.id) {
@@ -59,7 +79,7 @@ const DashboardPage: React.FC = () => {
             if (userGroupData?.group_id) {
               const groupId = userGroupData.group_id;
               
-              // Step 3: Get the group title from owc_usergroups using group_id
+              // Step 2: Get the group title from owc_usergroups using group_id
               const { data: groupData } = await supabase
                 .from('owc_usergroups')
                 .select('title')
@@ -70,6 +90,25 @@ const DashboardPage: React.FC = () => {
                 console.log("Found user role directly:", groupData.title);
                 setDisplayRole(groupData.title);
                 saveRoleToSessionStorage(groupData.title);
+                
+                // Redirect to role-specific dashboard if appropriate
+                const roleTitle = groupData.title.toLowerCase();
+                if (roleTitle.includes('employer')) {
+                  navigate("/employer-dashboard", { replace: true });
+                  return;
+                } else if (roleTitle.includes('registrar')) {
+                  navigate("/registrar-dashboard", { replace: true });
+                  return;
+                } else if (roleTitle.includes('commissioner')) {
+                  navigate("/commissioner-dashboard", { replace: true });
+                  return;
+                } else if (roleTitle.includes('payment')) {
+                  navigate("/payment-dashboard", { replace: true });
+                  return;
+                } else if (roleTitle.includes('provincialclaimsofficer') || roleTitle.includes('provincial claims officer')) {
+                  navigate("/pco-dashboard", { replace: true });
+                  return;
+                }
               }
             }
           }
@@ -84,6 +123,20 @@ const DashboardPage: React.FC = () => {
             return;
           }
           
+          // Check for known email mappings in sessionStorage
+          if (knownEmailRoleMappings[storedEmail]) {
+            const knownRole = knownEmailRoleMappings[storedEmail];
+            console.log(`Known email mapping found for ${storedEmail}: ${knownRole}`);
+            setDisplayRole(knownRole);
+            saveRoleToSessionStorage(knownRole);
+            
+            // Redirect to role-specific dashboard if appropriate
+            if (knownRole === "Commissioner") {
+              navigate("/commissioner-dashboard", { replace: true });
+              return;
+            }
+          }
+          
           console.log("Regular user email found in session storage, allowing dashboard access");
         } else if (storedRole) {
           console.log("No Supabase session but found role in sessionStorage, allowing dashboard access");
@@ -96,7 +149,7 @@ const DashboardPage: React.FC = () => {
     };
     
     checkSession();
-  }, [navigate, userRole]);
+  }, [navigate, userRole, knownEmailRoleMappings]);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -113,42 +166,92 @@ const DashboardPage: React.FC = () => {
           const email = user?.email || sessionStorage.getItem('currentUserEmail');
           const userId = user?.id;
           
-          if (email && email !== "administrator@gmail.com") {
-            console.log("No role found in context or session, fetching directly...");
+          if (email) {
+            // Check for known email mappings
+            if (knownEmailRoleMappings[email]) {
+              const knownRole = knownEmailRoleMappings[email];
+              console.log(`Known email mapping found for ${email}: ${knownRole}`);
+              setDisplayRole(knownRole);
+              saveRoleToSessionStorage(knownRole);
+              
+              // Redirect to role-specific dashboard if appropriate
+              if (knownRole === "Commissioner") {
+                navigate("/commissioner-dashboard", { replace: true });
+              }
+              
+              setIsCheckingRole(false);
+              return;
+            }
             
-            // Step 1: Try the direct approach first using auth_user_id in owc_user_usergroup_map
-            if (userId) {
-              // Get the group_id from owc_user_usergroup_map
-              const { data: userGroupData } = await supabase
-                .from('owc_user_usergroup_map')
-                .select('group_id')
-                .eq('auth_user_id', userId)
-                .maybeSingle();
-                
-              if (userGroupData?.group_id) {
-                const groupId = userGroupData.group_id;
-                
-                // Step 3: Get the group title from owc_usergroups using id
-                const { data: groupData } = await supabase
-                  .from('owc_usergroups')
-                  .select('title')
-                  .eq('id', groupId)
+            if (email !== "administrator@gmail.com") {
+              console.log("No role found in context or session, fetching directly...");
+              
+              // Step 1: Try the direct approach first using auth_user_id in owc_user_usergroup_map
+              if (userId) {
+                // Get the group_id from owc_user_usergroup_map
+                const { data: userGroupData } = await supabase
+                  .from('owc_user_usergroup_map')
+                  .select('group_id')
+                  .eq('auth_user_id', userId)
                   .maybeSingle();
                   
-                if (groupData?.title) {
-                  console.log("Found user role directly:", groupData.title);
-                  setDisplayRole(groupData.title);
-                  saveRoleToSessionStorage(groupData.title);
-                  setIsCheckingRole(false);
-                  return;
+                if (userGroupData?.group_id) {
+                  const groupId = userGroupData.group_id;
+                  
+                  // Get the group title from owc_usergroups using id
+                  const { data: groupData } = await supabase
+                    .from('owc_usergroups')
+                    .select('title')
+                    .eq('id', groupId)
+                    .maybeSingle();
+                    
+                  if (groupData?.title) {
+                    console.log("Found user role directly:", groupData.title);
+                    setDisplayRole(groupData.title);
+                    saveRoleToSessionStorage(groupData.title);
+                    
+                    // Redirect to role-specific dashboard if appropriate
+                    const roleTitle = groupData.title.toLowerCase();
+                    if (roleTitle.includes('employer')) {
+                      navigate("/employer-dashboard", { replace: true });
+                    } else if (roleTitle.includes('registrar')) {
+                      navigate("/registrar-dashboard", { replace: true });
+                    } else if (roleTitle.includes('commissioner')) {
+                      navigate("/commissioner-dashboard", { replace: true });
+                    } else if (roleTitle.includes('payment')) {
+                      navigate("/payment-dashboard", { replace: true });
+                    } else if (roleTitle.includes('provincialclaimsofficer') || roleTitle.includes('provincial claims officer')) {
+                      navigate("/pco-dashboard", { replace: true });
+                    }
+                    
+                    setIsCheckingRole(false);
+                    return;
+                  }
+                }
+              }
+              
+              // Fall back to email-based lookup
+              const fetchedRole = await fetchRoleByEmail(email);
+              console.log("Directly fetched role:", fetchedRole);
+              
+              if (fetchedRole) {
+                setDisplayRole(fetchedRole);
+                
+                // Redirect to role-specific dashboard if appropriate
+                const roleTitle = fetchedRole.toLowerCase();
+                if (roleTitle.includes('employer')) {
+                  navigate("/employer-dashboard", { replace: true });
+                } else if (roleTitle.includes('registrar')) {
+                  navigate("/registrar-dashboard", { replace: true });
+                } else if (roleTitle.includes('commissioner')) {
+                  navigate("/commissioner-dashboard", { replace: true });
+                } else if (roleTitle.includes('payment')) {
+                  navigate("/payment-dashboard", { replace: true });
+                } else if (roleTitle.includes('provincialclaimsofficer') || roleTitle.includes('provincial claims officer')) {
+                  navigate("/pco-dashboard", { replace: true });
                 }
               }
             }
-            
-            // Fall back to email-based lookup
-            const fetchedRole = await fetchRoleByEmail(email);
-            console.log("Directly fetched role:", fetchedRole);
-            setDisplayRole(fetchedRole);
           }
         }
       } catch (error) {
@@ -161,7 +264,7 @@ const DashboardPage: React.FC = () => {
     if (!loading) {
       checkUserRole();
     }
-  }, [user, userRole, loading, displayRole]);
+  }, [user, userRole, loading, displayRole, navigate, knownEmailRoleMappings]);
 
   if (loading || isCheckingRole || isCheckingSession) {
     return (

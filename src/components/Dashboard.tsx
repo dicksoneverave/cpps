@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DefaultDashboard from "./dashboards/DefaultDashboard";
-import DynamicDashboard from "./dashboards/DynamicDashboard";
+import DynamicRoleDashboard from "./dashboards/DynamicRoleDashboard";
 import AdminDashboard from "./dashboards/AdminDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 import RegistrarDashboard from "./dashboards/RegistrarDashboard";
@@ -45,34 +45,33 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     setDeathClaims(mockDeathData);
   }, []);
 
-  // Improved rendering of role-specific dashboards
+  // Render the appropriate dashboard based on user role
   const renderRoleDashboard = () => {
     if (!user || !userRole) {
-      console.log("No user or role found, showing default dashboard");
       return <DefaultDashboard />;
     }
     
     console.log("Rendering dashboard for role:", userRole);
     
-    // Use specific dashboards for common roles
-    const lowerCaseRole = userRole.toLowerCase();
+    // Check for specialized dashboards first
+    const lowerRole = userRole.toLowerCase();
     
-    if (lowerCaseRole.includes('admin')) {
+    if (lowerRole.includes('admin')) {
       return <AdminDashboard />;
-    } else if (lowerCaseRole.includes('employer')) {
+    } else if (lowerRole.includes('employer')) {
       return <EmployerDashboard />;
-    } else if (lowerCaseRole.includes('registrar')) {
+    } else if (lowerRole.includes('registrar')) {
       return <RegistrarDashboard />;
-    } else if (lowerCaseRole.includes('commissioner') || lowerCaseRole.includes('chief commissioner')) {
+    } else if (lowerRole.includes('commissioner')) {
       return <CommissionerDashboard />;
-    } else if (lowerCaseRole.includes('payment')) {
+    } else if (lowerRole.includes('payment')) {
       return <PaymentDashboard />;
-    } else if (lowerCaseRole.includes('provincialclaimsofficer') || lowerCaseRole.includes('provincial claims officer')) {
+    } else if ((lowerRole.includes('provincial') && lowerRole.includes('claims')) || lowerRole.includes('provincialclaimsofficer')) {
       return <ProvincialClaimsOfficerDashboard />;
     }
     
-    // If no specific dashboard found, use the DynamicDashboard
-    return <DynamicDashboard groupTitle={userRole} />;
+    // For all other roles, use the dynamic dashboard
+    return <DynamicRoleDashboard title={userRole} />;
   };
 
   const injuryChartConfig = {
