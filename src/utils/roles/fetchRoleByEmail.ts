@@ -14,18 +14,46 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return null;
     }
     
-    // Special case for administrator@gmail.com
+    // Special case handling for known emails
     if (email === "administrator@gmail.com") {
       console.log("Administrator email detected, setting admin role");
       saveRoleToSessionStorage("OWC Admin");
       return "OWC Admin";
     }
     
-    // Special case for vagi@bsp.com.pg - make sure we get the correct group
+    // Special case for vagi@bsp.com.pg - Provincial Claims Officer
     if (email === "vagi@bsp.com.pg") {
       console.log("Provincial Claims Officer email detected");
       saveRoleToSessionStorage("ProvincialClaimsOfficer");
       return "ProvincialClaimsOfficer";
+    }
+    
+    // Special case for employer@gmail.com - Employer
+    if (email === "employer@gmail.com") {
+      console.log("Employer email detected");
+      saveRoleToSessionStorage("Employer");
+      return "Employer";
+    }
+    
+    // Special case for registrar@gmail.com - Registrar
+    if (email === "registrar@gmail.com") {
+      console.log("Registrar email detected");
+      saveRoleToSessionStorage("Registrar");
+      return "Registrar";
+    }
+    
+    // Special case for commissioner@gmail.com - Commissioner
+    if (email === "commissioner@gmail.com") {
+      console.log("Commissioner email detected");
+      saveRoleToSessionStorage("Commissioner");
+      return "Commissioner";
+    }
+    
+    // Special case for payment@gmail.com - Payment
+    if (email === "payment@gmail.com") {
+      console.log("Payment Officer email detected");
+      saveRoleToSessionStorage("Payment");
+      return "Payment";
     }
     
     // First try user_mapping table which is the most direct way
@@ -70,6 +98,22 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
         console.log("Group ID 19 found, assigning ProvincialClaimsOfficer role");
         saveRoleToSessionStorage("ProvincialClaimsOfficer");
         return "ProvincialClaimsOfficer";
+      }
+      
+      // Group ID mappings for common roles
+      const groupIdMappings: Record<number, string> = {
+        1: "OWC Admin", 
+        2: "Employer",
+        3: "Registrar",
+        4: "Commissioner",
+        5: "Payment"
+      };
+      
+      if (groupIdMappings[groupId]) {
+        const roleName = groupIdMappings[groupId];
+        console.log(`Group ID ${groupId} found, assigning role: ${roleName}`);
+        saveRoleToSessionStorage(roleName);
+        return roleName;
       }
       
       // Now fetch the group title from owc_usergroups
