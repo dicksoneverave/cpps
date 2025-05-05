@@ -131,13 +131,15 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
         throw updateError;
       }
     } else {
-      // Insert new mapping - simplified approach to avoid type inference issues
+      // Insert new mapping - explicitly define the insert data to avoid type inference issues
+      const insertData = {
+        user_id: owcUserId,
+        group_id: parseInt(selectedGroupId)
+      };
+      
       const { error: insertError } = await supabase
         .from('owc_user_usergroup_map')
-        .insert({ 
-          user_id: owcUserId, 
-          group_id: parseInt(selectedGroupId)
-        });
+        .insert(insertData);
         
       if (insertError) {
         console.error("Error inserting user group mapping:", insertError);
