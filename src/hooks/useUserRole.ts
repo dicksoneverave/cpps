@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { fetchUserRoleComprehensive } from "@/services/auth";
 import { isAdminRole, getRoleFromSessionStorage, saveRoleToSessionStorage } from "@/utils/roles";
@@ -10,6 +11,7 @@ export const useUserRole = () => {
   
   const [userRole, setUserRole] = useState<string | null>(initialRole);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
+  const [dashboardPath, setDashboardPath] = useState<string | null>(null);
 
   // When component mounts, double-check the role from session storage
   useEffect(() => {
@@ -18,8 +20,51 @@ export const useUserRole = () => {
       console.log("Syncing role from session storage:", storedRole);
       setUserRole(storedRole);
       setIsAdmin(isAdminRole(storedRole));
+      // Set dashboard path based on role
+      setDashboardPath(getDashboardPathFromRole(storedRole));
     }
   }, [userRole]);
+
+  // Function to determine dashboard path based on role
+  const getDashboardPathFromRole = (role: string | null): string => {
+    if (!role) return "/dashboard";
+    
+    const lowerRole = role.toLowerCase();
+    
+    if (lowerRole.includes('admin')) {
+      return "/admin";
+    } else if (lowerRole.includes('employer')) {
+      return "/employer-dashboard";
+    } else if (lowerRole.includes('deputy registrar')) {
+      return "/deputy-registrar-dashboard";
+    } else if (lowerRole.includes('registrar')) {
+      return "/registrar-dashboard";
+    } else if (lowerRole.includes('commissioner')) {
+      return "/commissioner-dashboard";
+    } else if (lowerRole.includes('payment')) {
+      return "/payment-dashboard";
+    } else if (lowerRole.includes('provincial') && lowerRole.includes('claims') || lowerRole.includes('provincialclaimsofficer')) {
+      return "/pco-dashboard";
+    } else if (lowerRole.includes('agent') || lowerRole.includes('lawyer')) {
+      return "/agent-lawyer-dashboard";
+    } else if (lowerRole.includes('data entry')) {
+      return "/data-entry-dashboard";
+    } else if (lowerRole.includes('tribunal')) {
+      return "/tribunal-dashboard";
+    } else if (lowerRole.includes('fos')) {
+      return "/fos-dashboard";
+    } else if (lowerRole.includes('insurance')) {
+      return "/insurance-dashboard";
+    } else if (lowerRole.includes('solicitor')) {
+      return "/solicitor-dashboard";
+    } else if (lowerRole.includes('claims manager')) {
+      return "/claims-manager-dashboard";
+    } else if (lowerRole.includes('statistical')) {
+      return "/statistical-dashboard";
+    }
+    
+    return "/dashboard";
+  };
 
   const fetchUserRole = useCallback(async (userId: string, email: string) => {
     try {
@@ -32,6 +77,7 @@ export const useUserRole = () => {
         setUserRole(adminRole);
         saveRoleToSessionStorage(adminRole);
         setIsAdmin(true);
+        setDashboardPath("/admin");
         return;
       }
       
@@ -41,6 +87,7 @@ export const useUserRole = () => {
         console.log("Using stored role:", storedRole);
         setUserRole(storedRole);
         setIsAdmin(isAdminRole(storedRole));
+        setDashboardPath(getDashboardPathFromRole(storedRole));
         return;
       }
       
@@ -82,6 +129,7 @@ export const useUserRole = () => {
             setUserRole(roleTitle);
             saveRoleToSessionStorage(roleTitle);
             setIsAdmin(isAdminRole(roleTitle));
+            setDashboardPath(getDashboardPathFromRole(roleTitle));
             return;
           }
         }
@@ -100,12 +148,16 @@ export const useUserRole = () => {
       const adminStatus = isAdminRole(effectiveRole);
       console.log("Setting admin status:", adminStatus, "based on role:", effectiveRole);
       setIsAdmin(adminStatus);
+      
+      // Set dashboard path
+      setDashboardPath(getDashboardPathFromRole(effectiveRole));
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
       // Default role if all else fails
       setUserRole("User"); 
       saveRoleToSessionStorage("User");
       setIsAdmin(false);
+      setDashboardPath("/dashboard");
     }
   }, []);
 
@@ -114,6 +166,7 @@ export const useUserRole = () => {
     isAdmin,
     fetchUserRole,
     setUserRole,
-    setIsAdmin
+    setIsAdmin,
+    dashboardPath
   };
 };

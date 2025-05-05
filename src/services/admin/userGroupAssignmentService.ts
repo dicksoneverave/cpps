@@ -93,7 +93,7 @@ export const assignUserToGroup = async (userId: string, groupId: number): Promis
       return true;
     }
     
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('owc_user_usergroup_map')
       .insert([{ auth_user_id: userId, group_id: groupId }]);
     

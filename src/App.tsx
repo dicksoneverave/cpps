@@ -16,6 +16,15 @@ import RegistrarDashboardPage from "./pages/RegistrarDashboardPage";
 import CommissionerDashboardPage from "./pages/CommissionerDashboardPage";
 import PaymentDashboardPage from "./pages/PaymentDashboardPage";
 import PCODashboardPage from "./pages/PCODashboardPage";
+import DeputyRegistrarDashboardPage from "./pages/DeputyRegistrarDashboardPage";
+import AgentLawyerDashboardPage from "./pages/AgentLawyerDashboardPage";
+import DataEntryDashboardPage from "./pages/DataEntryDashboardPage";
+import TribunalDashboardPage from "./pages/TribunalDashboardPage";
+import FOSDashboardPage from "./pages/FOSDashboardPage";
+import InsuranceDashboardPage from "./pages/InsuranceDashboardPage";
+import SolicitorDashboardPage from "./pages/SolicitorDashboardPage";
+import ClaimsManagerDashboardPage from "./pages/ClaimsManagerDashboardPage";
+import StatisticalDashboardPage from "./pages/StatisticalDashboardPage";
 import NotFound from "./pages/NotFound";
 
 // Create a new QueryClient instance
@@ -38,6 +47,15 @@ const App = () => (
             <Route path="/commissioner-dashboard" element={<CommissionerDashboardPage />} />
             <Route path="/payment-dashboard" element={<PaymentDashboardPage />} />
             <Route path="/pco-dashboard" element={<PCODashboardPage />} />
+            <Route path="/deputy-registrar-dashboard" element={<DeputyRegistrarDashboardPage />} />
+            <Route path="/agent-lawyer-dashboard" element={<AgentLawyerDashboardPage />} />
+            <Route path="/data-entry-dashboard" element={<DataEntryDashboardPage />} />
+            <Route path="/tribunal-dashboard" element={<TribunalDashboardPage />} />
+            <Route path="/fos-dashboard" element={<FOSDashboardPage />} />
+            <Route path="/insurance-dashboard" element={<InsuranceDashboardPage />} />
+            <Route path="/solicitor-dashboard" element={<SolicitorDashboardPage />} />
+            <Route path="/claims-manager-dashboard" element={<ClaimsManagerDashboardPage />} />
+            <Route path="/statistical-dashboard" element={<StatisticalDashboardPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

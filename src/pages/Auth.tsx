@@ -18,6 +18,47 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Function to determine dashboard path based on role
+  const getDashboardPathFromRole = (role: string | null): string => {
+    if (!role) return "/dashboard";
+    
+    const lowerRole = role.toLowerCase();
+    
+    if (lowerRole.includes('admin') || email === "administrator@gmail.com") {
+      return "/admin";
+    } else if (lowerRole.includes('employer')) {
+      return "/employer-dashboard";
+    } else if (lowerRole.includes('deputy registrar')) {
+      return "/deputy-registrar-dashboard";
+    } else if (lowerRole.includes('registrar') && !lowerRole.includes('deputy')) {
+      return "/registrar-dashboard";
+    } else if (lowerRole.includes('commissioner')) {
+      return "/commissioner-dashboard";
+    } else if (lowerRole.includes('payment')) {
+      return "/payment-dashboard";
+    } else if (lowerRole.includes('provincialclaimsofficer') || lowerRole.includes('provincial claims officer')) {
+      return "/pco-dashboard";
+    } else if (lowerRole.includes('agent') || lowerRole.includes('lawyer')) {
+      return "/agent-lawyer-dashboard";
+    } else if (lowerRole.includes('data entry')) {
+      return "/data-entry-dashboard";
+    } else if (lowerRole.includes('tribunal')) {
+      return "/tribunal-dashboard";
+    } else if (lowerRole.includes('fos')) {
+      return "/fos-dashboard";
+    } else if (lowerRole.includes('insurance')) {
+      return "/insurance-dashboard";
+    } else if (lowerRole.includes('solicitor')) {
+      return "/solicitor-dashboard";
+    } else if (lowerRole.includes('claims manager')) {
+      return "/claims-manager-dashboard";
+    } else if (lowerRole.includes('statistical')) {
+      return "/statistical-dashboard";
+    }
+    
+    return "/dashboard";
+  };
+
   // Specific role mappings for known email addresses
   const knownEmailRoleMappings: Record<string, string> = {
     "administrator@gmail.com": "OWC Admin",
@@ -27,7 +68,16 @@ const Auth = () => {
     "employer@gmail.com": "Employer",
     "registrar@gmail.com": "Registrar",
     "commissioner@gmail.com": "Commissioner",
-    "payment@gmail.com": "Payment"
+    "payment@gmail.com": "Payment",
+    "deputy@gmail.com": "Deputy Registrar",
+    "agent@gmail.com": "Agent Lawyer",
+    "dataentry@gmail.com": "Data Entry",
+    "tribunal@gmail.com": "Tribunal",
+    "fos@gmail.com": "FOS",
+    "insurance@gmail.com": "Insurance",
+    "solicitor@gmail.com": "Solicitor",
+    "claimsmanager@gmail.com": "Claims Manager",
+    "statistical@gmail.com": "Statistical"
   };
 
   useEffect(() => {
@@ -73,66 +123,20 @@ const Auth = () => {
       // Save the role to session storage
       saveRoleToSessionStorage(knownRole);
       
-      // Redirect based on the known role
-      if (knownRole === "OWC Admin" || userEmail === "administrator@gmail.com") {
-        console.log("Redirecting admin to /admin");
-        navigate("/admin", { replace: true });
-        return;
-      } else if (knownRole === "Employer") {
-        console.log("Redirecting employer to /employer-dashboard");
-        navigate("/employer-dashboard", { replace: true });
-        return;
-      } else if (knownRole === "Registrar") {
-        console.log("Redirecting registrar to /registrar-dashboard");
-        navigate("/registrar-dashboard", { replace: true });
-        return;
-      } else if (knownRole === "Commissioner") {
-        console.log("Redirecting commissioner to /commissioner-dashboard");
-        navigate("/commissioner-dashboard", { replace: true });
-        return;
-      } else if (knownRole === "Payment") {
-        console.log("Redirecting payment to /payment-dashboard");
-        navigate("/payment-dashboard", { replace: true });
-        return;
-      } else if (knownRole === "ProvincialClaimsOfficer") {
-        console.log("Redirecting provincial claims officer to /pco-dashboard");
-        navigate("/pco-dashboard", { replace: true });
-        return;
-      }
-    }
-    
-    // Special case for administrator@gmail.com
-    if (userEmail === "administrator@gmail.com" || (role && isAdminRole(role))) {
-      console.log("Redirecting admin to /admin");
-      navigate("/admin", { replace: true });
+      // Get dashboard path for the role
+      const dashboardPath = getDashboardPathFromRole(knownRole);
+      console.log(`Redirecting to ${dashboardPath} for role ${knownRole}`);
+      navigate(dashboardPath, { replace: true });
       return;
     }
     
     // Role-specific redirects
     if (role) {
-      const lowerRole = role.toLowerCase();
-      
-      if (lowerRole.includes('employer')) {
-        console.log("Redirecting employer to /employer-dashboard");
-        navigate("/employer-dashboard", { replace: true });
-      } else if (lowerRole.includes('registrar')) {
-        console.log("Redirecting registrar to /registrar-dashboard");
-        navigate("/registrar-dashboard", { replace: true });
-      } else if (lowerRole.includes('commissioner')) {
-        console.log("Redirecting commissioner to /commissioner-dashboard");
-        navigate("/commissioner-dashboard", { replace: true });
-      } else if (lowerRole.includes('payment')) {
-        console.log("Redirecting payment to /payment-dashboard");
-        navigate("/payment-dashboard", { replace: true });
-      } else if (lowerRole.includes('provincialclaimsofficer') || lowerRole.includes('provincial claims officer')) {
-        console.log("Redirecting provincial claims officer to /pco-dashboard");
-        navigate("/pco-dashboard", { replace: true });
-      } else {
-        console.log("Redirecting user with role to /dashboard");
-        navigate("/dashboard", { replace: true });
-      }
+      const dashboardPath = getDashboardPathFromRole(role);
+      console.log(`Redirecting to ${dashboardPath} for role ${role}`);
+      navigate(dashboardPath, { replace: true });
     } else {
-      console.log("Redirecting user without role to /dashboard");
+      console.log("Redirecting to default dashboard");
       navigate("/dashboard", { replace: true });
     }
   };
@@ -246,7 +250,7 @@ const Auth = () => {
             <LoginForm
               email={email}
               setEmail={setEmail}
-              password={password}
+              password={setPassword}
               setPassword={setPassword}
               handleLogin={handleLogin}
               loading={loading}

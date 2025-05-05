@@ -1,60 +1,87 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { assignUserToGroup } from "./userGroupAssignmentService";
+import { assignUserToGroupSimplified } from "./userGroupAssignmentService";
 import { UserData } from "@/types/adminTypes";
-import { User } from "@supabase/supabase-js";
 
-export const assignAdministratorToAdminGroup = async (adminEmail: string = "administrator@gmail.com") => {
+/**
+ * Assigns a user as an administrator in the system
+ * @param userData The user data containing id and email
+ * @returns Promise<boolean> indicating success or failure
+ */
+export const assignUserAsAdministrator = async (userData: UserData | string): Promise<boolean> => {
   try {
-    // First, find the admin user
-    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+    // Extract the user ID (either from UserData object or use the string directly)
+    const userId = typeof userData === 'string' ? userData : userData.id;
     
-    if (authError) {
-      console.error("Error fetching auth users:", authError);
-      throw authError;
+    // Administrator group ID (should be configured properly)
+    const adminGroupId = 8; // OWC Admin group
+    
+    console.log(`Assigning user ${userId} as administrator (group ID: ${adminGroupId})...`);
+    
+    // Use the simplified function to assign the user to the admin group
+    const success = await assignUserToGroupSimplified(userId, adminGroupId);
+    
+    if (success) {
+      console.log(`Successfully assigned user ${userId} as administrator`);
+    } else {
+      console.error(`Failed to assign user ${userId} as administrator`);
     }
     
-    if (!authData?.users || !Array.isArray(authData.users)) {
-      throw new Error("Invalid auth data structure");
-    }
+    return success;
+  } catch (error) {
+    console.error('Error in assignUserAsAdministrator:', error);
+    return false;
+  }
+};
+
+/**
+ * Assigns a user as an OWC Admin
+ * This is a specialized version that ensures consistency
+ */
+export const assignAsOWCAdmin = async (userData: UserData | string): Promise<boolean> => {
+  try {
+    // Extract the user ID (either from UserData object or use the string directly)
+    const userId = typeof userData === 'string' ? userData : userData.id;
     
-    // Find the admin user by email
-    const adminUser = authData.users.find((user: User) => user.email === adminEmail);
+    console.log(`Assigning user ${userId} as OWC Admin...`);
     
-    if (!adminUser) {
-      throw new Error(`Admin user with email ${adminEmail} not found`);
-    }
+    // First check if the user already exists in the map
+    const { data: existingMapping, error: checkError } = await supabase
+      .from('owc_user_usergroup_map')
+      .select('*')
+      .eq('auth_user_id', userId)
+      .single();
     
-    // Find the OWC Admin group
-    const { data: groups, error: groupError } = await supabase
-      .from('owc_usergroups')
-      .select('id, title')
-      .eq('title', 'OWC Admin')
-      .maybeSingle();
+    if (!checkError && existingMapping) {
+      console.log(`User ${userId} already has a group assignment, updating to OWC Admin...`);
       
-    if (groupError) {
-      console.error("Error fetching admin group:", groupError);
-      throw groupError;
+      // Update the existing mapping
+      const { error: updateError } = await supabase
+        .from('owc_user_usergroup_map')
+        .update({ group_id: 8 }) // OWC Admin group ID
+        .eq('auth_user_id', userId);
+      
+      if (updateError) {
+        console.error('Error updating user group assignment:', updateError);
+        return false;
+      }
+      
+      return true;
     }
     
-    if (!groups) {
-      throw new Error("Admin group not found");
+    // Create a new mapping
+    const { error: insertError } = await supabase
+      .from('owc_user_usergroup_map')
+      .insert({ auth_user_id: userId, group_id: 8 }); // OWC Admin group ID
+    
+    if (insertError) {
+      console.error('Error inserting user group assignment:', insertError);
+      return false;
     }
     
-    // Convert admin user to UserData format
-    const userData: UserData = {
-      id: adminUser.id,
-      email: adminUser.email || "",
-      name: adminUser.user_metadata?.name || 'Administrator'
-    };
-    
-    // Assign admin user to admin group
-    await assignUserToGroup(userData, groups.id.toString());
-    
-    console.log(`Successfully assigned ${adminEmail} to admin group`);
     return true;
   } catch (error) {
-    console.error("Error assigning admin to group:", error);
-    throw error;
+    console.error('Error in assignAsOWCAdmin:', error);
+    return false;
   }
 };

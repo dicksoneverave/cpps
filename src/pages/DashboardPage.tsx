@@ -15,6 +15,47 @@ const DashboardPage: React.FC = () => {
   const [displayRole, setDisplayRole] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
+  // Map roles to their respective dashboard paths
+  const getRoleDashboardPath = (role: string | null): string => {
+    if (!role) return "/dashboard";
+    
+    const lowerRole = role.toLowerCase();
+    
+    if (lowerRole.includes('admin')) {
+      return "/admin";
+    } else if (lowerRole.includes('employer')) {
+      return "/employer-dashboard";
+    } else if (lowerRole.includes('deputy registrar')) {
+      return "/deputy-registrar-dashboard";
+    } else if (lowerRole.includes('registrar') && !lowerRole.includes('deputy')) {
+      return "/registrar-dashboard";
+    } else if (lowerRole.includes('commissioner')) {
+      return "/commissioner-dashboard";
+    } else if (lowerRole.includes('payment')) {
+      return "/payment-dashboard";
+    } else if (lowerRole.includes('provincialclaimsofficer') || lowerRole.includes('provincial claims officer')) {
+      return "/pco-dashboard";
+    } else if (lowerRole.includes('agent') || lowerRole.includes('lawyer')) {
+      return "/agent-lawyer-dashboard";
+    } else if (lowerRole.includes('data entry')) {
+      return "/data-entry-dashboard";
+    } else if (lowerRole.includes('tribunal')) {
+      return "/tribunal-dashboard";
+    } else if (lowerRole.includes('fos')) {
+      return "/fos-dashboard";
+    } else if (lowerRole.includes('insurance')) {
+      return "/insurance-dashboard";
+    } else if (lowerRole.includes('solicitor')) {
+      return "/solicitor-dashboard";
+    } else if (lowerRole.includes('claims manager')) {
+      return "/claims-manager-dashboard";
+    } else if (lowerRole.includes('statistical')) {
+      return "/statistical-dashboard";
+    }
+    
+    return "/dashboard";
+  };
+
   // Specific role mappings for known email addresses
   const knownEmailRoleMappings: Record<string, string> = {
     "dr@owc.gov.pg": "Commissioner",
@@ -27,8 +68,26 @@ const DashboardPage: React.FC = () => {
     if (storedRole) {
       console.log("Using stored role in DashboardPage:", storedRole);
       setDisplayRole(storedRole);
+      
+      // Redirect to role-specific dashboard
+      const dashboardPath = getRoleDashboardPath(storedRole);
+      if (dashboardPath !== "/dashboard") {
+        console.log("Redirecting to role-specific dashboard:", dashboardPath);
+        navigate(dashboardPath, { replace: true });
+        return;
+      }
     } else {
       setDisplayRole(userRole);
+      
+      // Redirect to role-specific dashboard if userRole is available
+      if (userRole) {
+        const dashboardPath = getRoleDashboardPath(userRole);
+        if (dashboardPath !== "/dashboard") {
+          console.log("Redirecting to role-specific dashboard based on userRole:", dashboardPath);
+          navigate(dashboardPath, { replace: true });
+          return;
+        }
+      }
     }
 
     // Check for session to determine auth status
@@ -60,11 +119,11 @@ const DashboardPage: React.FC = () => {
             setDisplayRole(knownRole);
             saveRoleToSessionStorage(knownRole);
             
-            // Redirect to role-specific dashboard if appropriate
-            if (knownRole === "Commissioner") {
-              navigate("/commissioner-dashboard", { replace: true });
-              return;
-            }
+            // Redirect to role-specific dashboard
+            const dashboardPath = getRoleDashboardPath(knownRole);
+            console.log("Redirecting to role-specific dashboard:", dashboardPath);
+            navigate(dashboardPath, { replace: true });
+            return;
           }
           
           // For all other users with sessions, check if we can directly get the role
@@ -91,24 +150,11 @@ const DashboardPage: React.FC = () => {
                 setDisplayRole(groupData.title);
                 saveRoleToSessionStorage(groupData.title);
                 
-                // Redirect to role-specific dashboard if appropriate
-                const roleTitle = groupData.title.toLowerCase();
-                if (roleTitle.includes('employer')) {
-                  navigate("/employer-dashboard", { replace: true });
-                  return;
-                } else if (roleTitle.includes('registrar')) {
-                  navigate("/registrar-dashboard", { replace: true });
-                  return;
-                } else if (roleTitle.includes('commissioner')) {
-                  navigate("/commissioner-dashboard", { replace: true });
-                  return;
-                } else if (roleTitle.includes('payment')) {
-                  navigate("/payment-dashboard", { replace: true });
-                  return;
-                } else if (roleTitle.includes('provincialclaimsofficer') || roleTitle.includes('provincial claims officer')) {
-                  navigate("/pco-dashboard", { replace: true });
-                  return;
-                }
+                // Redirect to role-specific dashboard
+                const dashboardPath = getRoleDashboardPath(groupData.title);
+                console.log("Redirecting to role-specific dashboard:", dashboardPath);
+                navigate(dashboardPath, { replace: true });
+                return;
               }
             }
           }
@@ -130,16 +176,24 @@ const DashboardPage: React.FC = () => {
             setDisplayRole(knownRole);
             saveRoleToSessionStorage(knownRole);
             
-            // Redirect to role-specific dashboard if appropriate
-            if (knownRole === "Commissioner") {
-              navigate("/commissioner-dashboard", { replace: true });
-              return;
-            }
+            // Redirect to role-specific dashboard
+            const dashboardPath = getRoleDashboardPath(knownRole);
+            console.log("Redirecting to role-specific dashboard:", dashboardPath);
+            navigate(dashboardPath, { replace: true });
+            return;
           }
           
           console.log("Regular user email found in session storage, allowing dashboard access");
         } else if (storedRole) {
           console.log("No Supabase session but found role in sessionStorage, allowing dashboard access");
+          
+          // Redirect to role-specific dashboard
+          const dashboardPath = getRoleDashboardPath(storedRole);
+          if (dashboardPath !== "/dashboard") {
+            console.log("Redirecting to role-specific dashboard:", dashboardPath);
+            navigate(dashboardPath, { replace: true });
+            return;
+          }
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -174,10 +228,10 @@ const DashboardPage: React.FC = () => {
               setDisplayRole(knownRole);
               saveRoleToSessionStorage(knownRole);
               
-              // Redirect to role-specific dashboard if appropriate
-              if (knownRole === "Commissioner") {
-                navigate("/commissioner-dashboard", { replace: true });
-              }
+              // Redirect to role-specific dashboard
+              const dashboardPath = getRoleDashboardPath(knownRole);
+              console.log("Redirecting to role-specific dashboard:", dashboardPath);
+              navigate(dashboardPath, { replace: true });
               
               setIsCheckingRole(false);
               return;
@@ -210,19 +264,10 @@ const DashboardPage: React.FC = () => {
                     setDisplayRole(groupData.title);
                     saveRoleToSessionStorage(groupData.title);
                     
-                    // Redirect to role-specific dashboard if appropriate
-                    const roleTitle = groupData.title.toLowerCase();
-                    if (roleTitle.includes('employer')) {
-                      navigate("/employer-dashboard", { replace: true });
-                    } else if (roleTitle.includes('registrar')) {
-                      navigate("/registrar-dashboard", { replace: true });
-                    } else if (roleTitle.includes('commissioner')) {
-                      navigate("/commissioner-dashboard", { replace: true });
-                    } else if (roleTitle.includes('payment')) {
-                      navigate("/payment-dashboard", { replace: true });
-                    } else if (roleTitle.includes('provincialclaimsofficer') || roleTitle.includes('provincial claims officer')) {
-                      navigate("/pco-dashboard", { replace: true });
-                    }
+                    // Redirect to role-specific dashboard
+                    const dashboardPath = getRoleDashboardPath(groupData.title);
+                    console.log("Redirecting to role-specific dashboard:", dashboardPath);
+                    navigate(dashboardPath, { replace: true });
                     
                     setIsCheckingRole(false);
                     return;
@@ -237,21 +282,21 @@ const DashboardPage: React.FC = () => {
               if (fetchedRole) {
                 setDisplayRole(fetchedRole);
                 
-                // Redirect to role-specific dashboard if appropriate
-                const roleTitle = fetchedRole.toLowerCase();
-                if (roleTitle.includes('employer')) {
-                  navigate("/employer-dashboard", { replace: true });
-                } else if (roleTitle.includes('registrar')) {
-                  navigate("/registrar-dashboard", { replace: true });
-                } else if (roleTitle.includes('commissioner')) {
-                  navigate("/commissioner-dashboard", { replace: true });
-                } else if (roleTitle.includes('payment')) {
-                  navigate("/payment-dashboard", { replace: true });
-                } else if (roleTitle.includes('provincialclaimsofficer') || roleTitle.includes('provincial claims officer')) {
-                  navigate("/pco-dashboard", { replace: true });
-                }
+                // Redirect to role-specific dashboard
+                const dashboardPath = getRoleDashboardPath(fetchedRole);
+                console.log("Redirecting to role-specific dashboard:", dashboardPath);
+                navigate(dashboardPath, { replace: true });
               }
             }
+          }
+        } else if (displayRole || userRole) {
+          // We have a role, so redirect to the appropriate dashboard
+          const effectiveRole = displayRole || userRole;
+          const dashboardPath = getRoleDashboardPath(effectiveRole);
+          
+          if (dashboardPath !== "/dashboard") {
+            console.log("Redirecting to role-specific dashboard:", dashboardPath);
+            navigate(dashboardPath, { replace: true });
           }
         }
       } catch (error) {
