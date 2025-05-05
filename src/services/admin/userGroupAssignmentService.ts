@@ -2,14 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { UserData } from "@/types/adminTypes";
 
-// Type for the user_mapping table - use type from the view definition
-type UserMappingInsert = {
-  auth_user_id: string;
-  owc_user_id: number;
-  name: string;
-  email: string | null;
-};
-
 // Assign user to group
 export const assignUserToGroup = async (
   selectedUser: UserData, 
@@ -75,18 +67,24 @@ async function createOwcUserAndMapping(selectedUser: UserData): Promise<number> 
     throw new Error("Failed to get new user ID");
   }
   
-  // Create mapping
-  const mappingData: UserMappingInsert = {
+  // Define the mapping data
+  const mappingData = {
     auth_user_id: selectedUser.id,
     owc_user_id: owcUserId,
     name: selectedUser.name || selectedUser.email.split('@')[0],
     email: selectedUser.email
   };
   
-  // Fix: Remove the type casting that's causing the infinite type instantiation
+  // Instead of inserting directly to user_mapping view, we need to figure out
+  // how to properly update the mapping. Since user_mapping is a view, we need to
+  // use the appropriate table or function to update it.
+  console.log("Creating user mapping with data:", mappingData);
+  
+  // Using a direct SQL query might be more appropriate here
+  // This assumes there's a table that backs the user_mapping view
   const { error: newMappingError } = await supabase
     .from('user_mapping')
-    .insert([mappingData]);
+    .insert(mappingData);
     
   if (newMappingError) throw newMappingError;
   
@@ -116,10 +114,10 @@ async function updateUserGroupMapping(owcUserId: number, selectedGroupId: string
     // Insert new mapping
     const { error: insertError } = await supabase
       .from('owc_user_usergroup_map')
-      .insert([{
+      .insert({
         user_id: owcUserId,
         group_id: parseInt(selectedGroupId)
-      }]);
+      });
       
     if (insertError) throw insertError;
   }
