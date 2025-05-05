@@ -15,56 +15,52 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     }
     
     // Special case handling for known emails
-    if (email === "administrator@gmail.com") {
-      console.log("Administrator email detected, setting admin role");
-      saveRoleToSessionStorage("OWC Admin");
-      return "OWC Admin";
+    const knownEmailMappings: Record<string, string> = {
+      "administrator@gmail.com": "OWC Admin",
+      "vagi@bsp.com.pg": "ProvincialClaimsOfficer",
+      "employer@gmail.com": "Employer",
+      "registrar@gmail.com": "Registrar",
+      "commissioner@gmail.com": "Commissioner",
+      "payment@gmail.com": "Payment",
+      "dr@owc.govpg": "Commissioner"
+    };
+    
+    if (knownEmailMappings[email]) {
+      const role = knownEmailMappings[email];
+      console.log(`${role} email detected for ${email}`);
+      saveRoleToSessionStorage(role);
+      return role;
     }
     
-    // Special case for vagi@bsp.com.pg - Provincial Claims Officer
-    if (email === "vagi@bsp.com.pg") {
-      console.log("Provincial Claims Officer email detected");
-      saveRoleToSessionStorage("ProvincialClaimsOfficer");
-      return "ProvincialClaimsOfficer";
+    // If not a known email, look up in the database
+    console.log("Checking database for email:", email);
+    
+    // First try direct user_mapping join with usergroup
+    const { data, error } = await supabase
+      .from('user_mapping')
+      .select(`
+        owc_user_id,
+        owc_user_usergroup_map!inner(
+          group_id,
+          owc_usergroups!inner(title)
+        )
+      `)
+      .eq('email', email)
+      .maybeSingle();
+      
+    if (error) {
+      console.error("Error in user_mapping lookup:", error);
     }
     
-    // Special case for employer@gmail.com - Employer
-    if (email === "employer@gmail.com") {
-      console.log("Employer email detected");
-      saveRoleToSessionStorage("Employer");
-      return "Employer";
+    if (data?.owc_user_usergroup_map?.owc_usergroups?.title) {
+      const role = data.owc_user_usergroup_map.owc_usergroups.title;
+      console.log("Found role via direct join:", role);
+      saveRoleToSessionStorage(role);
+      return role;
     }
     
-    // Special case for registrar@gmail.com - Registrar
-    if (email === "registrar@gmail.com") {
-      console.log("Registrar email detected");
-      saveRoleToSessionStorage("Registrar");
-      return "Registrar";
-    }
-    
-    // Special case for commissioner@gmail.com - Commissioner
-    if (email === "commissioner@gmail.com") {
-      console.log("Commissioner email detected");
-      saveRoleToSessionStorage("Commissioner");
-      return "Commissioner";
-    }
-    
-    // Special case for payment@gmail.com - Payment
-    if (email === "payment@gmail.com") {
-      console.log("Payment Officer email detected");
-      saveRoleToSessionStorage("Payment");
-      return "Payment";
-    }
-    
-    // Special case for dr@owc.govpg - Commissioner (Chief Commissioner role)
-    if (email === "dr@owc.govpg") {
-      console.log("Chief Commissioner email detected");
-      saveRoleToSessionStorage("Commissioner");
-      return "Commissioner";
-    }
-    
-    // First try user_mapping table which is the most direct way
-    console.log("Checking user_mapping for email:", email);
+    // Fallback to original approach with separate queries if the direct join didn't work
+    console.log("Fallback: checking user_mapping for email:", email);
     const { data: mappingData, error: mappingError } = await supabase
       .from('user_mapping')
       .select('owc_user_id')
@@ -76,10 +72,9 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     }
     
     if (mappingData?.owc_user_id) {
-      console.log("Found mapping for email via user_mapping:", email, "OWC ID:", mappingData.owc_user_id);
+      console.log("Found mapping for email:", email, "OWC ID:", mappingData.owc_user_id);
       
       // Fetch the user's group
-      console.log("Fetching user's group from owc_user_usergroup_map with user_id:", mappingData.owc_user_id);
       const { data: userGroupMapData, error: groupMapError } = await supabase
         .from('owc_user_usergroup_map')
         .select('group_id')
@@ -100,20 +95,14 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       const groupId = userGroupMapData.group_id;
       console.log("Found group_id:", groupId, "for OWC user ID:", mappingData.owc_user_id);
       
-      // Special handling for known group IDs
-      if (groupId === 19) {
-        console.log("Group ID 19 found, assigning ProvincialClaimsOfficer role");
-        saveRoleToSessionStorage("ProvincialClaimsOfficer");
-        return "ProvincialClaimsOfficer";
-      }
-      
       // Group ID mappings for common roles
       const groupIdMappings: Record<number, string> = {
         1: "OWC Admin", 
         2: "Employer",
         3: "Registrar",
         4: "Commissioner",
-        5: "Payment"
+        5: "Payment",
+        19: "ProvincialClaimsOfficer"
       };
       
       if (groupIdMappings[groupId]) {
@@ -123,7 +112,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
         return roleName;
       }
       
-      // Now fetch the group title from owc_usergroups
+      // If not a known group ID, fetch the title from owc_usergroups
       console.log("Fetching group title from owc_usergroups with group_id:", groupId);
       const { data: groupData, error: groupError } = await supabase
         .from('owc_usergroups')
@@ -139,20 +128,14 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       
       if (groupData?.title) {
         console.log("Found group title:", groupData.title, "for group_id:", groupId);
-        // Save to session storage
         saveRoleToSessionStorage(groupData.title);
         return groupData.title;
       }
-      
-      console.log("No group title found for group_id:", groupId);
-      saveRoleToSessionStorage("User"); // Default role
-      return "User";
     }
-    
-    console.log("No direct mapping found in user_mapping for email:", email);
+
+    // Try direct lookup in owc_users as a last resort
     console.log("Attempting direct lookup in owc_users for:", email);
     
-    // Try direct lookup in owc_users table
     const { data: owcUserData, error: owcUserError } = await supabase
       .from('owc_users')
       .select('id')
@@ -179,33 +162,28 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
         return "User";
       }
       
-      if (!groupMapData) {
-        console.log("No direct group mapping found for OWC user ID:", owcUserData.id);
-        saveRoleToSessionStorage("User");
-        return "User";
-      }
-      
-      // Get the group title
-      const { data: groupData, error: groupError } = await supabase
-        .from('owc_usergroups')
-        .select('title')
-        .eq('id', groupMapData.group_id)
-        .maybeSingle();
-      
-      if (groupError) {
-        console.error("Error in direct group title lookup:", groupError);
-        saveRoleToSessionStorage("User");
-        return "User";
-      }
-      
-      if (groupData?.title) {
-        console.log("Found direct group title:", groupData.title);
-        saveRoleToSessionStorage(groupData.title);
-        return groupData.title;
+      if (groupMapData?.group_id) {
+        const { data: groupData, error: groupError } = await supabase
+          .from('owc_usergroups')
+          .select('title')
+          .eq('id', groupMapData.group_id)
+          .maybeSingle();
+        
+        if (groupError) {
+          console.error("Error in direct group title lookup:", groupError);
+          saveRoleToSessionStorage("User");
+          return "User";
+        }
+        
+        if (groupData?.title) {
+          console.log("Found direct group title:", groupData.title);
+          saveRoleToSessionStorage(groupData.title);
+          return groupData.title;
+        }
       }
     }
     
-    // If no role was found, save default and return
+    // Default if no role was found
     console.log("No role mapping found for email:", email);
     saveRoleToSessionStorage("User");
     return "User";
