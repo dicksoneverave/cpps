@@ -12,7 +12,11 @@ export const fetchUserGroups = async (): Promise<UserGroup[]> => {
     
     if (error) throw error;
     
-    return data || [];
+    // Convert id to string to match UserGroup type
+    return data.map(group => ({
+      id: group.id.toString(),
+      title: group.title || ""
+    })) || [];
   } catch (error) {
     console.error("Error fetching user groups:", error);
     throw error;
