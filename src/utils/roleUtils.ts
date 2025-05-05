@@ -17,29 +17,66 @@ export const isAdminRole = (role: string | null): boolean => {
  */
 export const fetchRoleByEmail = async (email: string): Promise<string | null> => {
   try {
-    const { data: mappingData } = await supabase
-      .from('user_mapping')
-      .select('owc_user_id')
+    console.log("Looking up role by email:", email);
+    
+    const { data: owcUserData, error: owcError } = await supabase
+      .from('owc_users')
+      .select('id')
       .eq('email', email)
       .maybeSingle();
+    
+    if (owcError || !owcUserData) {
+      console.log("No direct OWC user found for email:", email);
       
-    if (mappingData?.owc_user_id) {
-      const { data: userGroupData } = await supabase
-        .from('owc_user_usergroup_map')
-        .select(`
-          group_id,
-          owc_usergroups:owc_usergroups(title)
-        `)
-        .eq('user_id', mappingData.owc_user_id)
+      // Try through user mapping
+      const { data: mappingData } = await supabase
+        .from('user_mapping')
+        .select('owc_user_id')
+        .eq('email', email)
         .maybeSingle();
         
-      if (userGroupData?.owc_usergroups) {
-        const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
-        if (groupData?.title) {
-          return groupData.title;
+      if (mappingData?.owc_user_id) {
+        console.log("Found mapping for email via user_mapping:", email);
+        const owcUserId = mappingData.owc_user_id;
+        
+        const { data: userGroupData } = await supabase
+          .from('owc_user_usergroup_map')
+          .select(`
+            group_id,
+            owc_usergroups:owc_usergroups(title)
+          `)
+          .eq('user_id', owcUserId)
+          .maybeSingle();
+          
+        if (userGroupData?.owc_usergroups) {
+          const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
+          console.log("Found group for email:", email, "Group:", groupData?.title);
+          return groupData?.title || null;
         }
       }
+      
+      return null;
     }
+    
+    // Found direct OWC user, get their group
+    const owcUserId = owcUserData.id;
+    console.log("Found direct OWC user for email:", email, "ID:", owcUserId);
+    
+    const { data: userGroupData } = await supabase
+      .from('owc_user_usergroup_map')
+      .select(`
+        group_id,
+        owc_usergroups:owc_usergroups(title)
+      `)
+      .eq('user_id', owcUserId)
+      .maybeSingle();
+      
+    if (userGroupData?.owc_usergroups) {
+      const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
+      console.log("Found group for email:", email, "Group:", groupData?.title);
+      return groupData?.title || null;
+    }
+    
     return null;
   } catch (e) {
     console.error("Error in email-based role lookup:", e);
@@ -52,6 +89,8 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
  */
 export const fetchRoleByAuthId = async (userId: string): Promise<string | null> => {
   try {
+    console.log("Looking up role by auth user ID:", userId);
+    
     const { data: mappingData } = await supabase
       .from('user_mapping')
       .select('owc_user_id')
@@ -59,6 +98,8 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
       .maybeSingle();
     
     if (mappingData?.owc_user_id) {
+      console.log("Found mapping for auth ID:", userId, "OWC ID:", mappingData.owc_user_id);
+      
       const { data: userGroupData } = await supabase
         .from('owc_user_usergroup_map')
         .select(`
@@ -70,11 +111,11 @@ export const fetchRoleByAuthId = async (userId: string): Promise<string | null> 
         
       if (userGroupData?.owc_usergroups) {
         const groupData = userGroupData.owc_usergroups as unknown as { title?: string };
-        if (groupData?.title) {
-          return groupData.title;
-        }
+        console.log("Found group for auth ID:", userId, "Group:", groupData?.title);
+        return groupData?.title || null;
       }
     }
+    
     return null;
   } catch (e) {
     console.error("Error in auth_user_id-based role lookup:", e);

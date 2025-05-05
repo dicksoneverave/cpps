@@ -41,8 +41,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
   // Render role-specific dashboard
   const renderRoleDashboard = () => {
-    if (!user || !userRole) return <DefaultDashboard />;
+    if (!user || !userRole) {
+      console.log("No user or role found, showing default dashboard");
+      return <DefaultDashboard />;
+    }
     
+    console.log("Rendering dashboard for role:", userRole);
     // If there's a valid userRole, use the DynamicDashboard
     return <DynamicDashboard groupTitle={userRole} />;
   };

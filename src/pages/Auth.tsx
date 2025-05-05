@@ -58,11 +58,16 @@ const Auth = () => {
           return;
         }
         
+        // Success message for all other users
         toast({
           title: "Login successful",
-          description: "Welcome back! (Standard password: dixman007)",
+          description: `Welcome back! Redirecting to your dashboard...`,
         });
-        navigate("/dashboard");
+        
+        // Add a short delay before redirect to allow for role fetching
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500);
       } else {
         throw new Error("Failed to authenticate. Please try again.");
       }
