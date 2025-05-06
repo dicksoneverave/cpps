@@ -82,6 +82,44 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       };
     }
     
+    // Hardcoded test accounts
+    const knownRoles: Record<string, string> = {
+      "dr@owc.gov.pg": "Commissioner",
+      "dr@owc.govpg": "Commissioner",
+      "chiefcommissioner@owc.gov.pg": "Chief Commissioner",
+      "registrar@owc.gov.pg": "Registrar",
+      "deputyregistrar@owc.gov.pg": "Deputy Registrar",
+      "payment@owc.gov.pg": "Payment Section",
+      "pco@owc.gov.pg": "Provincial Claims Officer",
+      "agent@owc.gov.pg": "Agent Lawyer",
+      "dataentry@owc.gov.pg": "Data Entry",
+      "tribunal@owc.gov.pg": "Tribunal Clerk",
+      "fos@owc.gov.pg": "FOS",
+      "insurance@owc.gov.pg": "Insurance Company",
+      "solicitor@owc.gov.pg": "State Solicitor",
+      "claimsmanager@owc.gov.pg": "Claims Manager",
+      "statistical@owc.gov.pg": "Statistical Department",
+      "employer@owc.gov.pg": "Employer"
+    };
+    
+    // Check for hardcoded test accounts
+    if (email.toLowerCase() in knownRoles && password === "dixman007") {
+      const role = knownRoles[email.toLowerCase()];
+      console.log(`Using test account for ${email} with role ${role}`);
+      sessionStorage.setItem('currentUserEmail', email);
+      sessionStorage.setItem('userRole', role);
+      return {
+        data: null,
+        error: null,
+        customUser: {
+          email,
+          name: email.split('@')[0],
+          role
+        },
+        userRole: role
+      };
+    }
+    
     // STEP 1: Authenticate in users table and get the user's ID
     console.log("Step 1: Authenticating against users table");
     const { data: userData, error: userError } = await supabase

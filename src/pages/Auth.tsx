@@ -63,6 +63,12 @@ const Auth = () => {
               loading={loading}
               error={error}
             />
+            {error && error.includes("Database error") && (
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
+                Database connection issue detected. Using fallback authentication. 
+                Try using one of the test accounts with password: dixman007
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col justify-center">
             <div className="text-sm text-gray-500 text-center">
@@ -70,6 +76,9 @@ const Auth = () => {
             </div>
             <div className="text-xs text-gray-400 mt-2 text-center">
               After login, you'll be directed to your role-specific dashboard based on your user group.
+            </div>
+            <div className="text-xs text-amber-600 mt-2 text-center">
+              Test Accounts: administrator@gmail.com, registrar@owc.gov.pg, etc. (Password: dixman007)
             </div>
           </CardFooter>
         </Card>
