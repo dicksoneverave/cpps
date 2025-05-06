@@ -143,9 +143,12 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           // Second approach: Use the direct RPC function
           console.log("Trying alternative direct RPC function approach");
           
-          // Fix: Properly specify type arguments for rpc - generic type and string key name
-          const { data: directRoleData, error: directRoleError } = await supabase
-            .rpc('get_user_group_title', { user_email: userEmail });
+          // Fix: Use type assertion to work around the TypeScript constraint
+          const { data: directRoleData, error: directRoleError } = await (supabase
+            .rpc('get_user_group_title', { user_email: userEmail }) as unknown as Promise<{
+              data: GroupTitleResult[] | null;
+              error: any;
+            }>);
             
           if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
             const result = directRoleData[0];

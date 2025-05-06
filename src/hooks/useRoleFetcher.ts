@@ -107,9 +107,12 @@ export const useRoleFetcher = () => {
         // Second approach: Use the direct RPC function
         console.log("Trying alternative direct RPC function approach");
         
-        // Fix: Properly use RPC without explicit type arguments
-        const { data: directRoleData, error: directRoleError } = await supabase
-          .rpc('get_user_group_title', { user_email: email });
+        // Fix: Use type assertion to work around the TypeScript constraint
+        const { data: directRoleData, error: directRoleError } = await (supabase
+          .rpc('get_user_group_title', { user_email: email }) as unknown as Promise<{
+            data: GroupTitleResult[] | null;
+            error: any;
+          }>);
           
         if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
           const result = directRoleData[0];
