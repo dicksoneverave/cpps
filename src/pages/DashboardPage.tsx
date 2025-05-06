@@ -2,13 +2,12 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import SessionChecker from "@/components/dashboard-page/SessionChecker";
-import RoleChecker from "@/components/dashboard-page/RoleChecker";
+import DashboardChecker from "@/components/dashboard-page/DashboardChecker";
 import DashboardContent from "@/components/dashboard-page/DashboardContent";
 
 const DashboardPage: React.FC = () => {
   const { loading } = useAuth();
-  const [isSessionChecked, setIsSessionChecked] = useState(false);
+  const [isChecked, setIsChecked] = useState(false);
   const [displayRole, setDisplayRole] = useState<string | null>(null);
 
   // Get role from session storage on mount
@@ -20,7 +19,7 @@ const DashboardPage: React.FC = () => {
     }
   }, []);
 
-  if (loading || !isSessionChecked) {
+  if (loading || !isChecked) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
@@ -31,16 +30,13 @@ const DashboardPage: React.FC = () => {
 
   return (
     <>
-      {/* First check session and redirect if needed */}
-      <SessionChecker 
-        onSessionChecked={() => setIsSessionChecked(true)} 
+      {/* Consolidated session and role checker */}
+      <DashboardChecker 
         setDisplayRole={setDisplayRole} 
+        onChecked={() => setIsChecked(true)} 
       />
       
-      {/* Then check role and redirect if needed */}
-      <RoleChecker displayRole={displayRole} setDisplayRole={setDisplayRole} />
-      
-      {/* Finally render the dashboard content */}
+      {/* Render dashboard content once checked */}
       <DashboardContent displayRole={displayRole} />
     </>
   );
