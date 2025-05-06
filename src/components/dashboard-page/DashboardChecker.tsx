@@ -129,8 +129,8 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         return;
       }
       
-      // FIX: Check if the data exists and if it has the required properties before accessing them
-      if (userGroupData && userGroupData.owc_usergroups && typeof userGroupData.owc_usergroups === 'object') {
+      // FIX: Add explicit null check before accessing owc_usergroups
+      if (userGroupData && userGroupData.owc_usergroups !== null && typeof userGroupData.owc_usergroups === 'object') {
         const groupTitle = userGroupData.owc_usergroups.title;
         if (groupTitle) {
           console.log("Found user role directly:", groupTitle);
