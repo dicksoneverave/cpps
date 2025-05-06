@@ -50,7 +50,7 @@ const Auth = () => {
           <CardHeader>
             <CardTitle className="text-center">Login</CardTitle>
             <CardDescription className="text-center">
-              Enter your credentials to access the system. All users have password: dixman007
+              Enter your credentials to access the system
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -65,8 +65,7 @@ const Auth = () => {
             />
             {error && error.includes("Database error") && (
               <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
-                Database connection issue detected. Using fallback authentication. 
-                Try using one of the test accounts with password: dixman007
+                Database connection issue detected. Using fallback authentication.
               </div>
             )}
           </CardContent>
@@ -76,9 +75,6 @@ const Auth = () => {
             </div>
             <div className="text-xs text-gray-400 mt-2 text-center">
               After login, you'll be directed to your role-specific dashboard based on your user group.
-            </div>
-            <div className="text-xs text-amber-600 mt-2 text-center">
-              Test Accounts: administrator@gmail.com, registrar@owc.gov.pg, etc. (Password: dixman007)
             </div>
             <div className="text-xs text-blue-500 mt-2 text-center">
               Session role: {sessionStorage.getItem('userRole') || 'Not set'}

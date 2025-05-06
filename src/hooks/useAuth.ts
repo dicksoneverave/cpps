@@ -15,27 +15,6 @@ export const useAuth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Hard-coded email to role mappings for testing
-  const knownEmailRoleMappings: Record<string, string> = {
-    "administrator@gmail.com": "OWC Admin",
-    "dr@owc.gov.pg": "Commissioner",
-    "dr@owc.govpg": "Commissioner",
-    "chiefcommissioner@owc.gov.pg": "Chief Commissioner",
-    "registrar@owc.gov.pg": "Registrar",
-    "deputyregistrar@owc.gov.pg": "Deputy Registrar",
-    "payment@owc.gov.pg": "Payment Section",
-    "pco@owc.gov.pg": "Provincial Claims Officer",
-    "agent@owc.gov.pg": "Agent Lawyer",
-    "dataentry@owc.gov.pg": "Data Entry",
-    "tribunal@owc.gov.pg": "Tribunal Clerk",
-    "fos@owc.gov.pg": "FOS",
-    "insurance@owc.gov.pg": "Insurance Company",
-    "solicitor@owc.gov.pg": "State Solicitor",
-    "claimsmanager@owc.gov.pg": "Claims Manager",
-    "statistical@owc.gov.pg": "Statistical Department",
-    "employer@owc.gov.pg": "Employer"
-  };
-
   const redirectBasedOnRole = useCallback((role: string | null, userEmail: string | null) => {
     console.log("[useAuth Debug] Redirecting based on role:", role);
     console.log("[useAuth Debug] User email:", userEmail);
@@ -44,18 +23,6 @@ export const useAuth = () => {
     if (userEmail === "administrator@gmail.com") {
       console.log("[useAuth Debug] Administrator email detected, redirecting to /admin");
       navigate("/admin", { replace: true });
-      return;
-    }
-    
-    // Check for known email mappings
-    if (userEmail && knownEmailRoleMappings[userEmail]) {
-      const knownRole = knownEmailRoleMappings[userEmail];
-      console.log(`[useAuth Debug] Known email mapping found for ${userEmail}: ${knownRole}`);
-      sessionStorage.setItem('userRole', knownRole);
-      
-      const dashboardPath = getDashboardPathByGroupTitle(knownRole);
-      console.log("[useAuth Debug] Redirecting to:", dashboardPath);
-      navigate(dashboardPath, { replace: true });
       return;
     }
     
@@ -69,7 +36,7 @@ export const useAuth = () => {
       console.log("[useAuth Debug] No role found, redirecting to default dashboard");
       navigate("/dashboard", { replace: true });
     }
-  }, [navigate, knownEmailRoleMappings]);
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,36 +45,10 @@ export const useAuth = () => {
     
     console.log("[useAuth Debug] Login attempt for:", email, "with password:", password === "dixman007" ? "correct password" : "incorrect password");
 
-    // For testing without database access, use these hardcoded credentials
-    if (email.toLowerCase() in knownEmailRoleMappings && password === "dixman007") {
-      console.log("[useAuth Debug] Using hardcoded credentials for testing");
-      const role = knownEmailRoleMappings[email.toLowerCase()];
-      
-      // Store the email and role in session storage
-      sessionStorage.setItem('currentUserEmail', email);
-      sessionStorage.setItem('userRole', role);
-      
-      // Set as authenticated and redirect
-      setIsAuthenticated(true);
-      
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${email}!`,
-      });
-      
-      // Get dashboard path based on role and redirect
-      const dashboardPath = getDashboardPathByGroupTitle(role);
-      console.log("[useAuth Debug] Redirecting to hardcoded role dashboard:", dashboardPath);
-      navigate(dashboardPath, { replace: true });
-      
-      setLoading(false);
-      return;
-    }
-
     try {
       console.log("[useAuth Debug] Attempting login for:", email);
       
-      // First try our custom login service which handles database errors more gracefully
+      // Use our custom login service which handles authentication
       try {
         const loginResponse = await loginWithSupabaseAuth(email, password);
         
@@ -129,8 +70,17 @@ export const useAuth = () => {
             const dashboardPath = getDashboardPathByGroupTitle(loginResponse.userRole);
             console.log("[useAuth Debug] Redirecting to custom login dashboard:", dashboardPath);
             navigate(dashboardPath, { replace: true });
-            return;
+          } else {
+            // If no role was found, redirect to default dashboard
+            setIsAuthenticated(true);
+            sessionStorage.setItem('userRole', 'User');
+            toast({
+              title: "Login Successful",
+              description: `Welcome back, ${email}!`,
+            });
+            navigate("/dashboard", { replace: true });
           }
+          return;
         }
       } catch (customLoginError: any) {
         console.error("[useAuth Debug] Custom login error:", customLoginError);
@@ -156,7 +106,7 @@ export const useAuth = () => {
         return;
       }
       
-      // Fallback to standard Supabase auth
+      // If custom login failed, try standard Supabase auth as fallback
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -165,39 +115,14 @@ export const useAuth = () => {
       if (error) {
         console.error("Login error:", error.message);
         
-        // Special case for database error
-        if (error.message.includes("Database error querying schema")) {
-          setError("Authentication service temporarily unavailable. Using fallback authentication.");
-          
-          // Check if we have a known mapping for this email
-          if (email.toLowerCase() in knownEmailRoleMappings && password === "dixman007") {
-            const role = knownEmailRoleMappings[email.toLowerCase()];
-            
-            // Store the email and role in session storage
-            sessionStorage.setItem('currentUserEmail', email);
-            sessionStorage.setItem('userRole', role);
-            
-            // Set as authenticated and redirect
-            setIsAuthenticated(true);
-            
-            toast({
-              title: "Login Successful",
-              description: `Welcome back, ${email}!`,
-            });
-            
-            // Get dashboard path based on role and redirect
-            const dashboardPath = getDashboardPathByGroupTitle(role);
-            console.log("[useAuth Debug] Redirecting to fallback role dashboard:", dashboardPath);
-            navigate(dashboardPath, { replace: true });
-            return;
-          } else {
-            setError("Authentication failed. Please check your credentials.");
-            toast({
-              variant: "destructive",
-              title: "Login Failed",
-              description: "Authentication error occurred. Please check your credentials.",
-            });
-          }
+        // Special case for database error - more user-friendly message
+        if (error.message.includes("Database error")) {
+          setError("Authentication service temporarily unavailable. Please try again later.");
+          toast({
+            variant: "destructive",
+            title: "Service Unavailable",
+            description: "Authentication service temporarily unavailable. Please try again later.",
+          });
         } else {
           // Standard error handling
           setError(error.message);
@@ -211,7 +136,7 @@ export const useAuth = () => {
       }
 
       if (data.user) {
-        console.log("[useAuth Debug] Login successful for:", data.user.email);
+        console.log("[useAuth Debug] Standard Supabase auth login successful for:", data.user.email);
         
         // Save current user email to session storage for persistence
         sessionStorage.setItem('currentUserEmail', data.user.email || "");
@@ -225,20 +150,6 @@ export const useAuth = () => {
           return;
         }
 
-        // Special case for known email mappings
-        if (data.user.email && knownEmailRoleMappings[data.user.email.toLowerCase()]) {
-          const knownRole = knownEmailRoleMappings[data.user.email.toLowerCase()];
-          console.log(`[useAuth Debug] Known role for ${data.user.email}: ${knownRole}`);
-          sessionStorage.setItem('userRole', knownRole);
-          setIsAuthenticated(true);
-          
-          const dashboardPath = getDashboardPathByGroupTitle(knownRole);
-          console.log("[useAuth Debug] Redirecting to known role dashboard:", dashboardPath);
-          navigate(dashboardPath, { replace: true });
-          return;
-        }
-
-        console.log("[useAuth Debug] Fetching user role from database...");
         // Need to find the user's role from the database
         if (data.user.id) {
           try {
