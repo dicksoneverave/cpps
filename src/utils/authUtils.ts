@@ -8,12 +8,9 @@ export const getUserRole = async (userId: string): Promise<string | null> => {
     // to find the user's group ID and then query the owc_usergroups table to get the role name
     const { data, error } = await supabase
       .from('owc_user_usergroup_map')
-      .select(`
-        group_id,
-        owc_usergroups!inner(title)
-      `)
-      .eq('user_id', parseInt(userId, 10))
-      .single();
+      .select('group_id, owc_usergroups!inner(title)')
+      .eq('auth_user_id', userId)
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching user role:", error);

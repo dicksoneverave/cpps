@@ -36,11 +36,10 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     // Since user_mapping table no longer exists, let's try direct auth users approach
     console.log("Looking up user by email directly:", email);
     
-    // Get the user directly from auth
+    // Get the user directly from auth - using the proper API parameters
     const { data: userData, error: userError } = await supabase.auth.admin.listUsers({
       page: 1,
-      perPage: 1,
-      query: email
+      perPage: 1
     });
     
     if (userError) {
@@ -48,8 +47,11 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return "User"; // Default role
     }
     
-    if (userData?.users && userData.users.length > 0) {
-      const userId = userData.users[0].id;
+    // Filter users by email manually since we can't query directly
+    const matchedUser = userData?.users?.find(user => user.email === email);
+    
+    if (matchedUser) {
+      const userId = matchedUser.id;
       console.log("Found user with ID:", userId);
       
       // Get the group from owc_user_usergroup_map using auth_user_id
