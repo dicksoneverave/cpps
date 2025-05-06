@@ -48,11 +48,16 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     }
     
     // Filter users by email manually since we can't query directly
-    // Use type assertion to ensure TypeScript understands the structure
     if (userData?.users && Array.isArray(userData.users)) {
-      const matchedUser = userData.users.find(user => 
-        user && typeof user === 'object' && 'email' in user && user.email === email
-      );
+      // Type guard to ensure we're working with user objects that have an email property
+      const matchedUser = userData.users.find(user => {
+        // Check if user is an object and has an email property that matches
+        return user && 
+               typeof user === 'object' && 
+               'email' in user && 
+               typeof user.email === 'string' && 
+               user.email === email;
+      });
       
       if (matchedUser) {
         const userId = matchedUser.id;
