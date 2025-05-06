@@ -76,7 +76,8 @@ export const useRoleFetcher = () => {
         } else if (data && 
                    data.owc_usergroups && 
                    typeof data.owc_usergroups === 'object' && 
-                   !('error' in data.owc_usergroups)) {
+                   !('error' in data.owc_usergroups) &&
+                   data.owc_usergroups !== null) {
           
           // Now we can safely cast to UserGroup
           const userGroup = data.owc_usergroups as UserGroup;
