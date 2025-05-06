@@ -15,6 +15,12 @@ interface DashboardCheckerProps {
   onChecked: () => void;
 }
 
+// Define a type for the user group structure
+interface UserGroup {
+  title: string;
+  id: string | number;
+}
+
 const DashboardChecker: React.FC<DashboardCheckerProps> = ({ 
   setDisplayRole,
   onChecked
@@ -109,12 +115,6 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
   // Helper function to fetch role from database
   const fetchRoleFromDatabase = async (userId: string, userEmail: string | null) => {
     try {
-      // Define the user group type for type safety
-      type UserGroup = {
-        title: string;
-        id: string | number;
-      };
-      
       // Single database query to get user's group
       const { data: userGroupData, error: userGroupError } = await supabase
         .from('owc_user_usergroup_map')
@@ -137,14 +137,14 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       
       // Check if we have valid data and the owc_usergroups property is a valid object
       if (userGroupData && 
-          userGroupData.owc_usergroups !== null && 
+          userGroupData.owc_usergroups && 
           typeof userGroupData.owc_usergroups === 'object' && 
           !('error' in userGroupData.owc_usergroups)) {
         
         // Now we can safely cast to UserGroup
         const userGroup = userGroupData.owc_usergroups as UserGroup;
         
-        if (userGroup && userGroup.title) {
+        if (userGroup.title) {
           console.log("Found user role directly:", userGroup.title);
           sessionStorage.setItem('userRole', userGroup.title);
           setDisplayRole(userGroup.title);

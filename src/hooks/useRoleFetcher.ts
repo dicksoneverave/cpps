@@ -74,14 +74,14 @@ export const useRoleFetcher = () => {
         if (error) {
           console.error("Database error fetching role:", error);
         } else if (data && 
-                   data.owc_usergroups !== null && 
+                   data.owc_usergroups && 
                    typeof data.owc_usergroups === 'object' && 
                    !('error' in data.owc_usergroups)) {
           
           // Now we can safely cast to UserGroup
           const userGroup = data.owc_usergroups as UserGroup;
           
-          if (userGroup && userGroup.title) {
+          if (userGroup.title) {
             console.log("Found role in database:", userGroup.title);
             sessionStorage.setItem('userRole', userGroup.title);
             return {
