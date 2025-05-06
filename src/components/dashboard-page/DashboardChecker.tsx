@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { getDashboardPathByGroupTitle } from "@/services/admin/userGroupService";
-import { useToast } from "@/components/ui/use-toast";
 
 /**
  * Consolidated component that handles both session and role checking
@@ -28,7 +27,6 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
   const { user, loading } = useAuth();
   const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   // Known email role mappings
   const knownEmailRoleMappings: Record<string, string> = {
@@ -84,6 +82,7 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           setDisplayRole(storedRole);
           const dashboardPath = getDashboardPathByGroupTitle(storedRole);
           if (dashboardPath !== "/dashboard") {
+            console.log("Redirecting to role-specific dashboard:", dashboardPath);
             navigate(dashboardPath, { replace: true });
           }
           return;
@@ -96,11 +95,6 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         }
       } catch (error) {
         console.error("Error checking session/role:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to verify your session. Please try logging in again.",
-        });
       } finally {
         setIsChecking(false);
         onChecked();
@@ -110,7 +104,7 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
     if (!loading) {
       checkSessionAndRole();
     }
-  }, [loading, navigate, setDisplayRole, onChecked, toast]);
+  }, [loading, navigate, setDisplayRole, onChecked]);
 
   // Helper function to fetch role from database
   const fetchRoleFromDatabase = async (userId: string, userEmail: string | null) => {
@@ -136,7 +130,8 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       }
       
       // Check if we have valid data and extract the user group if available
-      if (userGroupData?.owc_usergroups && 
+      if (userGroupData && 
+          userGroupData.owc_usergroups && 
           typeof userGroupData.owc_usergroups === 'object' && 
           'title' in userGroupData.owc_usergroups &&
           'id' in userGroupData.owc_usergroups) {
@@ -150,6 +145,7 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           setDisplayRole(title);
           
           const dashboardPath = getDashboardPathByGroupTitle(title);
+          console.log("Redirecting to role-specific dashboard:", dashboardPath);
           navigate(dashboardPath, { replace: true });
           return;
         }
