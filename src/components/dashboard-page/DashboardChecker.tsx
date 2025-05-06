@@ -135,25 +135,23 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         return;
       }
       
-      // Check if we have valid data and the owc_usergroups property
-      if (userGroupData && userGroupData.owc_usergroups !== null) {
-        // Make sure owc_usergroups is not an error object before type assertion
-        if (
+      // Check if we have valid data and the owc_usergroups property is a valid object
+      if (userGroupData && 
+          userGroupData.owc_usergroups !== null && 
           typeof userGroupData.owc_usergroups === 'object' && 
-          !('error' in userGroupData.owc_usergroups)
-        ) {
-          // Now we can safely cast to UserGroup
-          const userGroup = userGroupData.owc_usergroups as UserGroup;
+          !('error' in userGroupData.owc_usergroups)) {
+        
+        // Now we can safely cast to UserGroup
+        const userGroup = userGroupData.owc_usergroups as UserGroup;
+        
+        if (userGroup && userGroup.title) {
+          console.log("Found user role directly:", userGroup.title);
+          sessionStorage.setItem('userRole', userGroup.title);
+          setDisplayRole(userGroup.title);
           
-          if (userGroup && userGroup.title) {
-            console.log("Found user role directly:", userGroup.title);
-            sessionStorage.setItem('userRole', userGroup.title);
-            setDisplayRole(userGroup.title);
-            
-            const dashboardPath = getDashboardPathByGroupTitle(userGroup.title);
-            navigate(dashboardPath, { replace: true });
-            return;
-          }
+          const dashboardPath = getDashboardPathByGroupTitle(userGroup.title);
+          navigate(dashboardPath, { replace: true });
+          return;
         }
       }
       
