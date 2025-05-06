@@ -120,29 +120,119 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       };
     }
     
-    // STEP 1: Authenticate in users table and get the user's ID
-    console.log("Step 1: Authenticating against users table");
-    const { data: userData, error: userError } = await supabase
-      .from('users')
+    // Try with regular users table first
+    console.log("Checking standard users table for:", email);
+    try {
+      const { data: regularUserData, error: regularUserError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+        
+      if (!regularUserError && regularUserData) {
+        // Verify with the password utility
+        if (verifyPassword(password, regularUserData.password)) {
+          console.log("User authenticated via regular users table:", email);
+          
+          // Find role if any
+          try {
+            let userRole: string | null = "User"; // Default role
+            
+            // Try to get role from user_mapping and owc_user_usergroup_map
+            const { data: userMapping } = await supabase
+              .from('user_mapping')
+              .select('auth_user_id')
+              .eq('email', email)
+              .maybeSingle();
+              
+            if (userMapping && userMapping.auth_user_id) {
+              console.log("Found user mapping with auth_user_id:", userMapping.auth_user_id);
+              
+              const { data: groupMapping } = await supabase
+                .from('owc_user_usergroup_map')
+                .select('group_id')
+                .eq('auth_user_id', userMapping.auth_user_id)
+                .maybeSingle();
+                
+              if (groupMapping && groupMapping.group_id) {
+                console.log("Found group mapping with group_id:", groupMapping.group_id);
+                
+                const { data: groupData } = await supabase
+                  .from('owc_usergroups')
+                  .select('title')
+                  .eq('id', groupMapping.group_id)
+                  .maybeSingle();
+                  
+                if (groupData && groupData.title) {
+                  userRole = groupData.title;
+                  console.log("Found role from group:", userRole);
+                }
+              }
+            }
+            
+            // Store user information in session storage
+            sessionStorage.setItem('currentUserEmail', email);
+            sessionStorage.setItem('userRole', userRole);
+            
+            return {
+              data: null,
+              error: null,
+              customUser: {
+                ...regularUserData,
+                role: userRole
+              },
+              userRole: userRole
+            };
+          } catch (roleError) {
+            console.error("Error finding role:", roleError);
+            
+            // Still allow login but with default role
+            sessionStorage.setItem('currentUserEmail', email);
+            sessionStorage.setItem('userRole', "User");
+            
+            return {
+              data: null,
+              error: null,
+              customUser: {
+                ...regularUserData,
+                role: "User"
+              },
+              userRole: "User"
+            };
+          }
+        } else {
+          console.error("Password verification failed for user:", email);
+          throw new Error("Invalid email or password. Please try again.");
+        }
+      }
+    } catch (regularUserError) {
+      console.error("Error checking regular users:", regularUserError);
+      // Continue to OWC users table
+    }
+    
+    // STEP 1: Authenticate in owc_users table and get the user's ID
+    console.log("Step 1: Authenticating against owc_users table");
+    const { data: owcUserData, error: owcUserError } = await supabase
+      .from('owc_users')
       .select('*')
       .eq('email', email)
       .maybeSingle();
       
-    if (userError || !userData) {
-      console.error("User lookup error:", userError);
+    if (owcUserError || !owcUserData) {
+      console.error("OWC User lookup error:", owcUserError);
       throw new Error("User not found. Please check your email and try again.");
     }
     
-    // Verify with the password utility
-    if (!verifyPassword(password, userData.password)) {
-      console.error("Password verification failed");
+    // For OWC users, all have password "dixman007"
+    if (password !== "dixman007") {
+      console.error("Password verification failed for OWC user");
       throw new Error("Invalid email or password. Please try again.");
     }
     
-    console.log("User verified in users table:", email, "with ID:", userData.id);
+    console.log("OWC User verified in owc_users table:", email, "with ID:", owcUserData.id);
     
     // Try to create a Supabase auth session
-    let authUserId: string = userData.id;
+    let authUserId: string = owcUserData.id.toString();
     let authData: any = null;
     
     try {
@@ -158,11 +248,11 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
         authUserId = supabaseAuthData.user.id; // Use Supabase auth ID for next steps
         authData = supabaseAuthData;
       } else {
-        console.log("Supabase auth session creation failed, using users table ID:", authUserId);
+        console.log("Supabase auth session creation failed, using owc_users table ID:", authUserId);
       }
     } catch (authError) {
       console.error("Authentication error:", authError);
-      // Continue with users table ID
+      // Continue with owc_users table ID
     }
     
     // STEP 2: Match the user ID with auth_user_id in owc_user_usergroup_map to get group_id
@@ -202,11 +292,22 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       }
     }
     
+    // If no role found, default to User
+    if (!userRole) {
+      userRole = "User";
+      sessionStorage.setItem('userRole', userRole);
+      console.log("No specific role found, defaulting to:", userRole);
+    }
+    
     // Create a copy of userData as CustomUserData and include the role
     const customUserData: CustomUserData = {
-      ...userData,
+      ...owcUserData,
+      id: authUserId,
       role: userRole || undefined
     };
+    
+    // Store email in session storage
+    sessionStorage.setItem('currentUserEmail', email);
     
     // Return successful login response with all the data
     console.log("Authentication flow completed. User role:", userRole);

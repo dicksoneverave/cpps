@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Form {
@@ -129,7 +130,7 @@ export const getUserGroup = async (userId: number): Promise<UserGroup | null> =>
       .from('owc_user_usergroup_map')
       .select(`
         group_id,
-        owc_usergroups!inner(*)
+        owc_usergroups!inner(id, parent_id, title, rgt, lft)
       `)
       .eq('user_id', userId)
       .single();
@@ -139,29 +140,8 @@ export const getUserGroup = async (userId: number): Promise<UserGroup | null> =>
       return null;
     }
 
-    // Type guard to ensure we have the correct data structure
-    if (data && typeof data === 'object' && 'owc_usergroups' in data && 
-        data.owc_usergroups && typeof data.owc_usergroups === 'object') {
-      
-      const userGroupData = data.owc_usergroups as any;
-      
-      // Ensure all required properties exist
-      if ('id' in userGroupData && 
-          'parent_id' in userGroupData && 
-          'title' in userGroupData && 
-          'rgt' in userGroupData && 
-          'lft' in userGroupData) {
-        
-        const userGroup: UserGroup = {
-          id: userGroupData.id,
-          parent_id: userGroupData.parent_id,
-          title: userGroupData.title,
-          rgt: userGroupData.rgt,
-          lft: userGroupData.lft
-        };
-        
-        return userGroup;
-      }
+    if (data && data.owc_usergroups) {
+      return data.owc_usergroups as UserGroup;
     }
     
     return null;

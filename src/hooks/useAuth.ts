@@ -62,7 +62,7 @@ export const useAuth = () => {
     if (role) {
       // Get dashboard path based on role
       const dashboardPath = getDashboardPathByGroupTitle(role);
-      console.log("[useAuth Debug] Role found, redirecting to:", dashboardPath);
+      console.log("[useAuth Debug] Role found, redirecting to:", dashboardPath, "from role:", role);
       navigate(dashboardPath, { replace: true });
     } else {
       // Default to dashboard if no role
@@ -75,6 +75,8 @@ export const useAuth = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    
+    console.log("[useAuth Debug] Login attempt for:", email, "with password:", password === "dixman007" ? "correct password" : "incorrect password");
 
     // For testing without database access, use these hardcoded credentials
     if (email.toLowerCase() in knownEmailRoleMappings && password === "dixman007") {
@@ -121,7 +123,7 @@ export const useAuth = () => {
             
             toast({
               title: "Login Successful",
-              description: `Welcome back, ${email}!`,
+              description: `Welcome back, ${email}! Your role: ${loginResponse.userRole}`,
             });
             
             const dashboardPath = getDashboardPathByGroupTitle(loginResponse.userRole);
@@ -130,9 +132,28 @@ export const useAuth = () => {
             return;
           }
         }
-      } catch (customLoginError) {
+      } catch (customLoginError: any) {
         console.error("[useAuth Debug] Custom login error:", customLoginError);
-        // Continue with standard Supabase auth as fallback
+        
+        // Show proper error message from custom login service
+        if (customLoginError && customLoginError.message) {
+          setError(customLoginError.message);
+          toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: customLoginError.message,
+          });
+        } else {
+          setError("Authentication failed. Please check your credentials.");
+          toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Authentication failed. Please check your credentials.",
+          });
+        }
+        
+        setLoading(false);
+        return;
       }
       
       // Fallback to standard Supabase auth

@@ -80,6 +80,9 @@ const Auth = () => {
             <div className="text-xs text-amber-600 mt-2 text-center">
               Test Accounts: administrator@gmail.com, registrar@owc.gov.pg, etc. (Password: dixman007)
             </div>
+            <div className="text-xs text-blue-500 mt-2 text-center">
+              Session role: {sessionStorage.getItem('userRole') || 'Not set'}
+            </div>
           </CardFooter>
         </Card>
       </div>
