@@ -107,12 +107,9 @@ export const useRoleFetcher = () => {
         // Second approach: Use the direct RPC function
         console.log("Trying alternative direct RPC function approach");
         
-        // Fix: Use proper type parameters for the RPC call - specify both return type and arguments type
+        // Fix: Properly use RPC without explicit type arguments
         const { data: directRoleData, error: directRoleError } = await supabase
-          .rpc<GroupTitleResult[], Record<string, any>>(
-            'get_user_group_title', 
-            { user_email: email }
-          );
+          .rpc('get_user_group_title', { user_email: email });
           
         if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
           const result = directRoleData[0];
@@ -192,6 +189,13 @@ export const useRoleFetcher = () => {
     } finally {
       setIsLoading(false);
     }
+    
+    // Default return for TypeScript compiler
+    return {
+      role: "User",
+      dashboardPath: "/dashboard",
+      isAdmin: false
+    };
   }, []);
   
   // Clear cached role (for logout)

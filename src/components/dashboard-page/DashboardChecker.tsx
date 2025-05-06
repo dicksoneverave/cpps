@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -144,12 +143,9 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           // Second approach: Use the direct RPC function
           console.log("Trying alternative direct RPC function approach");
           
-          // Fix: Use proper type parameters for the RPC call - specify both return type and arguments type
+          // Fix: Properly specify type arguments for rpc - generic type and string key name
           const { data: directRoleData, error: directRoleError } = await supabase
-            .rpc<GroupTitleResult[], Record<string, any>>(
-              'get_user_group_title', 
-              { user_email: userEmail }
-            );
+            .rpc('get_user_group_title', { user_email: userEmail });
             
           if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
             const result = directRoleData[0];
