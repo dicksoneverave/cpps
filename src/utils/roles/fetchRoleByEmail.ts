@@ -33,30 +33,30 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return role;
     }
     
-    // If not a known email, look up in the database
-    console.log("Checking database for email:", email);
+    // Since user_mapping table no longer exists, let's try direct auth users approach
+    console.log("Looking up user by email directly:", email);
     
-    // Step 1: Get the auth user id from user_mapping table
-    const { data: userMappingData, error: userMappingError } = await supabase
-      .from('user_mapping')
-      .select('auth_user_id')
-      .eq('email', email)
-      .maybeSingle();
+    // Get the user directly from auth
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers({
+      filters: {
+        email: email
+      }
+    });
     
-    if (userMappingError) {
-      console.error("Error in user_mapping lookup:", userMappingError);
-      return null;
+    if (userError) {
+      console.error("Error looking up user by email:", userError);
+      return "User"; // Default role
     }
     
-    if (userMappingData?.auth_user_id) {
-      const authUserId = userMappingData.auth_user_id;
-      console.log("Found auth_user_id for email:", email, "auth_user_id:", authUserId);
+    if (userData?.users && userData.users.length > 0) {
+      const userId = userData.users[0].id;
+      console.log("Found user with ID:", userId);
       
-      // Step 2: Get the group from owc_user_usergroup_map using auth_user_id
+      // Get the group from owc_user_usergroup_map using auth_user_id
       const { data: groupMapData, error: groupMapError } = await supabase
         .from('owc_user_usergroup_map')
         .select('group_id')
-        .eq('auth_user_id', authUserId)
+        .eq('auth_user_id', userId)
         .maybeSingle();
       
       if (groupMapError) {
@@ -65,13 +65,13 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       }
       
       if (!groupMapData) {
-        console.log("No group mapping found for auth_user_id:", authUserId);
+        console.log("No group mapping found for auth_user_id:", userId);
         saveRoleToSessionStorage("User"); // Default role
         return "User";
       }
       
       const groupId = groupMapData.group_id;
-      console.log("Found group_id:", groupId, "for auth_user_id:", authUserId);
+      console.log("Found group_id:", groupId, "for auth_user_id:", userId);
       
       // Step 3: Handle common role mappings directly
       const groupIdMappings: {[key: number]: string} = {

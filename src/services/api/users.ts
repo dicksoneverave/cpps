@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export async function getUsers() {
   const { data, error } = await supabase
-    .from('owc_users')
+    .from('owc_users_duplicate')
     .select('id, name, email, registerDate, username, sendEmail, block, authProvider')
     .order('id', { ascending: false });
 
@@ -17,7 +17,7 @@ export async function getUsers() {
 export async function getUserById(userId: string | number) {
   // For the query, we need to use the correct type based on the column definition
   const { data, error } = await supabase
-    .from('owc_users')
+    .from('owc_users_duplicate')
     .select('id, name, email, registerDate, username, sendEmail, block, authProvider')
     .eq('id', userId)
     .single();
@@ -40,11 +40,11 @@ export async function getUserGroup(userId: string | number) {
     return null;
   }
   
-  // Use a more explicit approach to avoid type instantiation issues
+  // Use a direct approach to avoid type instantiation issues
   const { data, error } = await supabase
     .from('owc_user_usergroup_map')
     .select('group_id')
-    .eq('user_id', numericUserId);
+    .eq('auth_user_id', userId);
 
   if (error) {
     console.error("Error fetching user group:", error);

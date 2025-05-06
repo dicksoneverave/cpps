@@ -41,13 +41,6 @@ async function enrichUsersWithGroupData(users: UserData[]): Promise<UserData[]> 
   try {
     const userIds = users.map(user => user.id);
     
-    // Get user mappings
-    const { data: mappings, error: mappingError } = await supabase
-      .from('user_mapping')
-      .select('auth_user_id, name, email');
-      
-    if (mappingError) throw mappingError;
-    
     // Get group mappings using auth_user_id
     const { data: groupMappings, error: groupError } = await supabase
       .from('owc_user_usergroup_map')
@@ -76,12 +69,10 @@ async function enrichUsersWithGroupData(users: UserData[]): Promise<UserData[]> 
     
     // Merge data
     const enhancedUsers = users.map(user => {
-      const mapping = mappings?.find(m => m.auth_user_id === user.id);
       const groupMapping = groupMappings?.find(gm => gm.auth_user_id === user.id);
         
       return {
         ...user,
-        name: mapping?.name || user.name,
         group_id: groupMapping?.group_id,
         group_title: groupMapping?.group_id ? groupTitles[groupMapping.group_id] : undefined
       };
