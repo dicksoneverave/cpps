@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardFactory from "./dashboards/DashboardFactory";
 import ClaimsChart from "./dashboards/ClaimsCharts";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardProps {
   userRole: string;
@@ -17,6 +18,9 @@ interface ChartData {
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const [injuryClaims, setInjuryClaims] = useState<ChartData[]>([]);
   const [deathClaims, setDeathClaims] = useState<ChartData[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [groupId, setGroupId] = useState<number | null>(null);
+  const [groupTitle, setGroupTitle] = useState<string | null>(null);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -36,6 +40,70 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     
     setInjuryClaims(mockInjuryData);
     setDeathClaims(mockDeathData);
+  }, []);
+
+  // Fetch user role details for debugging
+  useEffect(() => {
+    const fetchUserRoleDetails = async () => {
+      // Get user ID from either auth context or session storage
+      const currentEmail = sessionStorage.getItem('currentUserEmail');
+      
+      if (currentEmail) {
+        try {
+          // Step 1: Get user ID from public.users table
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', currentEmail)
+            .maybeSingle();
+            
+          if (userError) {
+            console.error("Error fetching user ID:", userError);
+            return;
+          }
+          
+          if (userData?.id) {
+            setUserId(userData.id);
+            
+            // Step 2: Get group ID from owc_user_usergroup_map
+            const { data: groupMapData, error: groupMapError } = await supabase
+              .from('owc_user_usergroup_map')
+              .select('group_id')
+              .eq('auth_user_id', userData.id)
+              .maybeSingle();
+              
+            if (groupMapError) {
+              console.error("Error fetching group ID:", groupMapError);
+              return;
+            }
+            
+            if (groupMapData?.group_id) {
+              setGroupId(groupMapData.group_id);
+              
+              // Step 3: Get group title from owc_usergroups
+              const { data: groupData, error: groupError } = await supabase
+                .from('owc_usergroups')
+                .select('title')
+                .eq('id', groupMapData.group_id)
+                .maybeSingle();
+                
+              if (groupError) {
+                console.error("Error fetching group title:", groupError);
+                return;
+              }
+              
+              if (groupData?.title) {
+                setGroupTitle(groupData.title);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error in role detail lookup:", error);
+        }
+      }
+    };
+    
+    fetchUserRoleDetails();
   }, []);
 
   const injuryChartConfig = {
@@ -68,6 +136,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           <p><strong>Stored Role in Session:</strong> {storedRole || 'Not stored in session'}</p>
           <p><strong>Current URL:</strong> {window.location.pathname}</p>
           <p><strong>Expected URL:</strong> {getDashboardPathFromRole(storedRole || userRole)}</p>
+          <p><strong>User ID from public.users:</strong> {userId || 'Not found'}</p>
+          <p><strong>Group ID from owc_user_usergroup_map:</strong> {groupId !== null ? groupId : 'Not found'}</p>
+          <p><strong>Group Title from owc_usergroups:</strong> {groupTitle || 'Not found'}</p>
         </div>
       </div>
       
