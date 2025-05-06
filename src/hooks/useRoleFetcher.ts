@@ -67,15 +67,18 @@ export const useRoleFetcher = () => {
           
         if (error) {
           console.error("Database error fetching role:", error);
-        } else if (data?.owc_usergroups?.title) {
-          const role = data.owc_usergroups.title;
-          console.log("Found role in database:", role);
-          sessionStorage.setItem('userRole', role);
-          return {
-            role,
-            dashboardPath: getDashboardPathByGroupTitle(role),
-            isAdmin: isAdminRole(role)
-          };
+        } else if (data && data.owc_usergroups && typeof data.owc_usergroups === 'object') {
+          // FIX: Check if the data exists and if it has the required properties before accessing them
+          const groupTitle = data.owc_usergroups.title;
+          if (groupTitle) {
+            console.log("Found role in database:", groupTitle);
+            sessionStorage.setItem('userRole', groupTitle);
+            return {
+              role: groupTitle,
+              dashboardPath: getDashboardPathByGroupTitle(groupTitle),
+              isAdmin: isAdminRole(groupTitle)
+            };
+          }
         }
       }
       

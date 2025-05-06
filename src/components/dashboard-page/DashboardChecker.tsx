@@ -110,7 +110,7 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
   const fetchRoleFromDatabase = async (userId: string, userEmail: string | null) => {
     try {
       // Single database query to get user's group
-      const { data: userGroupData } = await supabase
+      const { data: userGroupData, error: userGroupError } = await supabase
         .from('owc_user_usergroup_map')
         .select(`
           group_id,
@@ -122,15 +122,25 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         .eq('auth_user_id', userId)
         .maybeSingle();
         
-      if (userGroupData?.owc_usergroups?.title) {
-        const role = userGroupData.owc_usergroups.title;
-        console.log("Found user role directly:", role);
-        sessionStorage.setItem('userRole', role);
-        setDisplayRole(role);
-        
-        const dashboardPath = getDashboardPathByGroupTitle(role);
-        navigate(dashboardPath, { replace: true });
+      if (userGroupError) {
+        console.error("Error fetching user group data:", userGroupError);
+        sessionStorage.setItem('userRole', 'User');
+        setDisplayRole('User');
         return;
+      }
+      
+      // FIX: Check if the data exists and if it has the required properties before accessing them
+      if (userGroupData && userGroupData.owc_usergroups && typeof userGroupData.owc_usergroups === 'object') {
+        const groupTitle = userGroupData.owc_usergroups.title;
+        if (groupTitle) {
+          console.log("Found user role directly:", groupTitle);
+          sessionStorage.setItem('userRole', groupTitle);
+          setDisplayRole(groupTitle);
+          
+          const dashboardPath = getDashboardPathByGroupTitle(groupTitle);
+          navigate(dashboardPath, { replace: true });
+          return;
+        }
       }
       
       // Default to basic user if no role found
