@@ -27,17 +27,17 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return role;
     }
     
-    // Step 1: First look up the user in our custom users table
-    console.log("Looking up user by email in users table:", email);
+    // Step 1: First look up the user in the public.users table
+    console.log("Looking up user by email in public.users table:", email);
     
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('id')
       .eq('email', email)
       .maybeSingle();
     
     if (userError) {
-      console.error("Error looking up user in users table:", userError);
+      console.error("Error looking up user in public.users table:", userError);
       saveRoleToSessionStorage("User"); // Default role
       return "User";
     }
