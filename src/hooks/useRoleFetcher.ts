@@ -104,21 +104,23 @@ export const useRoleFetcher = () => {
           }
         }
         
-        // Second approach: Use the direct RPC function
-        console.log("Trying alternative direct RPC function approach");
+        // Second approach: Use a direct query instead of RPC
+        console.log("Trying alternative direct SQL query approach");
         
-        // Fix: Use type assertion to work around the TypeScript constraint
-        const { data: directRoleData, error: directRoleError } = await (supabase
-          .rpc('get_user_group_title', { user_email: email }) as unknown as Promise<{
-            data: GroupTitleResult[] | null;
-            error: any;
-          }>);
+        // If we have the user's UUID, query the user group mapping directly
+        if (userId) {
+          const { data: directData, error: directError } = await supabase
+            .from('owc_user_usergroup_map')
+            .select(`
+              group_id,
+              owc_usergroups!inner(title)
+            `)
+            .eq('auth_user_id', userId)
+            .maybeSingle();
           
-        if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
-          const result = directRoleData[0];
-          if (result && 'group_title' in result && result.group_title) {
-            const title = result.group_title;
-            console.log("Found role using direct RPC call:", title);
+          if (!directError && directData && directData.owc_usergroups && directData.owc_usergroups.title) {
+            const title = directData.owc_usergroups.title;
+            console.log("Found role using direct SQL query:", title);
             sessionStorage.setItem('userRole', title);
             return {
               role: title,

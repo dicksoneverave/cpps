@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -140,21 +141,23 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
             }
           }
           
-          // Second approach: Use the direct RPC function
-          console.log("Trying alternative direct RPC function approach");
+          // Second approach: Use a direct fetch with SQL query instead of RPC
+          console.log("Trying alternative approach with direct SQL query");
           
-          // Fix: Use type assertion to work around the TypeScript constraint
-          const { data: directRoleData, error: directRoleError } = await (supabase
-            .rpc('get_user_group_title', { user_email: userEmail }) as unknown as Promise<{
-              data: GroupTitleResult[] | null;
-              error: any;
-            }>);
-            
-          if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
-            const result = directRoleData[0];
-            if (result && 'group_title' in result && result.group_title) {
-              const title = result.group_title;
-              console.log("Found role using direct RPC call:", title);
+          // Query directly using a more basic SELECT statement
+          const { data: directData, error: directError } = await supabase
+            .from('owc_user_usergroup_map')
+            .select(`
+              group_id,
+              owc_usergroups!inner(title)
+            `)
+            .eq('auth_user_id', data.session?.user?.id)
+            .maybeSingle();
+          
+          if (!directError && directData && directData.owc_usergroups) {
+            const title = directData.owc_usergroups.title;
+            if (title) {
+              console.log("Found role using direct SQL query:", title);
               sessionStorage.setItem('userRole', title);
               setDisplayRole(title);
               
