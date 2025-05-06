@@ -4,6 +4,11 @@ import { saveRoleToSessionStorage } from "./sessionStorage";
 
 /**
  * Fetch user role using email mapping
+ * Following the exact process:
+ * 1. Authenticate in 'users' table and get users.id
+ * 2. Match this id with auth_user_id in owc_user_usergroup_map, get group_id
+ * 3. Find matching group_id in owc_usergroups, get title (role)
+ * 4. Load role-specific dashboard
  */
 export const fetchRoleByEmail = async (email: string): Promise<string | null> => {
   try {
@@ -14,26 +19,15 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       return null;
     }
     
-    // Special case handling for known emails
-    const knownEmailMappings: Record<string, string> = {
-      "administrator@gmail.com": "OWC Admin",
-      "vagi@bsp.com.pg": "ProvincialClaimsOfficer",
-      "employer@gmail.com": "Employer",
-      "registrar@gmail.com": "Registrar",
-      "commissioner@gmail.com": "Commissioner",
-      "payment@gmail.com": "Payment",
-      "dr@owc.gov.pg": "Commissioner",
-      "dr@owc.govpg": "Commissioner"
-    };
-    
-    if (knownEmailMappings[email]) {
-      const role = knownEmailMappings[email];
+    // Special case handling only for administrator
+    if (email === "administrator@gmail.com") {
+      const role = "OWC Admin";
       console.log(`${role} email detected for ${email}`);
       saveRoleToSessionStorage(role);
       return role;
     }
     
-    // Since user_mapping table no longer exists, let's try direct auth users approach
+    // Step 1: First look up the user in auth users
     console.log("Looking up user by email directly:", email);
     
     // Get the user directly from auth - using the proper API parameters
@@ -44,7 +38,8 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     
     if (userError) {
       console.error("Error looking up user by email:", userError);
-      return "User"; // Default role
+      saveRoleToSessionStorage("User"); // Default role
+      return "User";
     }
     
     // Filter users by email manually since we can't query directly
@@ -52,18 +47,17 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
       // Type guard to ensure we're working with user objects that have an email property
       const matchedUser = userData.users.find(user => {
         // Check if user is an object and has an email property that matches
-        return user && 
-               typeof user === 'object' && 
-               'email' in user && 
-               typeof user.email === 'string' && 
-               user.email === email;
+        if (!user || typeof user !== 'object') return false;
+        if (!('email' in user)) return false;
+        if (typeof user.email !== 'string') return false;
+        return user.email === email;
       });
       
       if (matchedUser) {
         const userId = matchedUser.id;
         console.log("Found user with ID:", userId);
         
-        // Get the group from owc_user_usergroup_map using auth_user_id
+        // Step 2: Get the group from owc_user_usergroup_map using auth_user_id
         const { data: groupMapData, error: groupMapError } = await supabase
           .from('owc_user_usergroup_map')
           .select('group_id')
@@ -72,6 +66,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
         
         if (groupMapError) {
           console.error("Error in owc_user_usergroup_map lookup:", groupMapError);
+          saveRoleToSessionStorage("User");
           return "User";
         }
         
@@ -84,24 +79,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
         const groupId = groupMapData.group_id;
         console.log("Found group_id:", groupId, "for auth_user_id:", userId);
         
-        // Step 3: Handle common role mappings directly
-        const groupIdMappings: {[key: number]: string} = {
-          1: "OWC Admin", 
-          2: "Employer",
-          3: "Registrar",
-          4: "Commissioner",
-          5: "Payment",
-          19: "ProvincialClaimsOfficer"
-        };
-        
-        if (groupIdMappings[groupId]) {
-          const roleName = groupIdMappings[groupId];
-          console.log(`Group ID ${groupId} found, assigning role: ${roleName}`);
-          saveRoleToSessionStorage(roleName);
-          return roleName;
-        }
-        
-        // Step 3 (alternative): If not a known group ID, fetch the title from owc_usergroups
+        // Step 3: Fetch the title from owc_usergroups using group_id
         console.log("Fetching group title from owc_usergroups with group_id:", groupId);
         const { data: groupData, error: groupError } = await supabase
           .from('owc_usergroups')
