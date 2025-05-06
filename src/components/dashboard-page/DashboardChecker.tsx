@@ -129,16 +129,17 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         return;
       }
       
-      // Improved type checking with proper type assertions
-      if (
-        userGroupData && 
-        userGroupData.owc_usergroups && 
-        typeof userGroupData.owc_usergroups === 'object'
-      ) {
-        // Use type assertion to tell TypeScript this is a valid object with title property
-        const userGroup = userGroupData.owc_usergroups as { title?: string };
+      // More robust type checking with explicit structure
+      type UserGroup = {
+        title: string;
+        id: string | number;
+      };
+      
+      if (userGroupData && userGroupData.owc_usergroups) {
+        // Using a more precise type assertion
+        const userGroup = userGroupData.owc_usergroups as UserGroup;
         
-        if (userGroup.title) {
+        if (userGroup && userGroup.title) {
           console.log("Found user role directly:", userGroup.title);
           sessionStorage.setItem('userRole', userGroup.title);
           setDisplayRole(userGroup.title);

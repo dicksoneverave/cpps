@@ -11,6 +11,12 @@ export const useRoleFetcher = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Define a type for the user group structure
+  type UserGroup = {
+    title: string;
+    id: string | number;
+  };
+  
   // Get role with optimized fetching strategy
   const fetchRole = useCallback(async (userId?: string, email?: string): Promise<{
     role: string;
@@ -68,10 +74,10 @@ export const useRoleFetcher = () => {
         if (error) {
           console.error("Database error fetching role:", error);
         } else if (data && data.owc_usergroups) {
-          // Improved type handling with safer assertion
-          const userGroup = data.owc_usergroups as { title?: string };
+          // Using a more precise type assertion with our defined type
+          const userGroup = data.owc_usergroups as UserGroup;
           
-          if (userGroup.title) {
+          if (userGroup && userGroup.title) {
             console.log("Found role in database:", userGroup.title);
             sessionStorage.setItem('userRole', userGroup.title);
             return {
