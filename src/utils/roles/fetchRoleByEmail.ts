@@ -31,7 +31,7 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     console.log("Looking up user by email in public.users table:", email);
     
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('public.users')
       .select('id')
       .eq('email', email)
       .maybeSingle();
@@ -51,15 +51,15 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     const userId = userData.id;
     console.log("Found user with ID:", userId);
     
-    // Step 2: Get the group from owc_user_usergroup_map using auth_user_id
+    // Step 2: Get the group from public.owc_user_usergroup_map using auth_user_id
     const { data: groupMapData, error: groupMapError } = await supabase
-      .from('owc_user_usergroup_map')
+      .from('public.owc_user_usergroup_map')
       .select('group_id')
       .eq('auth_user_id', userId)
       .maybeSingle();
     
     if (groupMapError) {
-      console.error("Error in owc_user_usergroup_map lookup:", groupMapError);
+      console.error("Error in public.owc_user_usergroup_map lookup:", groupMapError);
       saveRoleToSessionStorage("User");
       return "User";
     }
@@ -73,16 +73,16 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     const groupId = groupMapData.group_id;
     console.log("Found group_id:", groupId, "for auth_user_id:", userId);
     
-    // Step 3: Fetch the title from owc_usergroups using group_id
-    console.log("Fetching group title from owc_usergroups with group_id:", groupId);
+    // Step 3: Fetch the title from public.owc_usergroups using group_id
+    console.log("Fetching group title from public.owc_usergroups with group_id:", groupId);
     const { data: groupData, error: groupError } = await supabase
-      .from('owc_usergroups')
+      .from('public.owc_usergroups')
       .select('title')
       .eq('id', groupId)
       .maybeSingle();
     
     if (groupError) {
-      console.error("Error in owc_usergroups lookup:", groupError);
+      console.error("Error in public.owc_usergroups lookup:", groupError);
       saveRoleToSessionStorage("User"); // Default role
       return "User";
     }

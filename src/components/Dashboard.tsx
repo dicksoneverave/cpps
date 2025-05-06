@@ -65,9 +65,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           if (userData?.id) {
             setUserId(userData.id);
             
-            // Step 2: Get group ID from owc_user_usergroup_map
+            // Step 2: Get group ID from public.owc_user_usergroup_map
+            console.log("Looking up group_id for user ID:", userData.id);
             const { data: groupMapData, error: groupMapError } = await supabase
-              .from('owc_user_usergroup_map')
+              .from('public.owc_user_usergroup_map')
               .select('group_id')
               .eq('auth_user_id', userData.id)
               .maybeSingle();
@@ -78,11 +79,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             }
             
             if (groupMapData?.group_id) {
+              console.log("Found group_id:", groupMapData.group_id);
               setGroupId(groupMapData.group_id);
               
-              // Step 3: Get group title from owc_usergroups
+              // Step 3: Get group title from public.owc_usergroups
               const { data: groupData, error: groupError } = await supabase
-                .from('owc_usergroups')
+                .from('public.owc_usergroups')
                 .select('title')
                 .eq('id', groupMapData.group_id)
                 .maybeSingle();
@@ -93,8 +95,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               }
               
               if (groupData?.title) {
+                console.log("Found group title:", groupData.title);
                 setGroupTitle(groupData.title);
+              } else {
+                console.log("No title found for group ID:", groupMapData.group_id);
               }
+            } else {
+              console.log("No group mapping found for user ID:", userData.id);
             }
           }
         } catch (error) {
