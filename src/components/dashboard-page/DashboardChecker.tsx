@@ -86,13 +86,13 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         if (userEmail) {
           console.log("Fetching role using SQL query for email:", userEmail);
           
-          // Using a proper SQL query with a direct join
+          // First approach: Use a structured join query
           const { data: roleData, error: roleError } = await supabase
             .from('users')
             .select(`
               id,
-              group_title:owc_user_usergroup_map!inner(
-                owc_usergroups!inner(
+              group_title:owc_user_usergroup_map(
+                owc_usergroups(
                   title
                 )
               )
@@ -105,38 +105,46 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           } else if (roleData && roleData.group_title && roleData.group_title.length > 0) {
             // Extract the title from the nested structure
             const groupData = roleData.group_title[0];
-            if (groupData && groupData.owc_usergroups && typeof groupData.owc_usergroups === 'object') {
-              const title = groupData.owc_usergroups.title;
-              
-              if (title && typeof title === 'string') {
-                console.log("Found role in database using join query:", title);
-                sessionStorage.setItem('userRole', title);
-                setDisplayRole(title);
+            // Safely access the nested properties
+            if (groupData && 'owc_usergroups' in groupData && groupData.owc_usergroups) {
+              const userGroup = groupData.owc_usergroups;
+              if (userGroup && typeof userGroup === 'object' && 'title' in userGroup) {
+                const title = userGroup.title;
                 
-                const dashboardPath = getDashboardPathByGroupTitle(title);
-                console.log("Redirecting to role-specific dashboard:", dashboardPath);
-                navigate(dashboardPath, { replace: true });
-                return;
+                if (title && typeof title === 'string') {
+                  console.log("Found role in database using join query:", title);
+                  sessionStorage.setItem('userRole', title);
+                  setDisplayRole(title);
+                  
+                  const dashboardPath = getDashboardPathByGroupTitle(title);
+                  console.log("Redirecting to role-specific dashboard:", dashboardPath);
+                  navigate(dashboardPath, { replace: true });
+                  return;
+                }
               }
             }
           }
           
-          // Try alternative approach with a stored procedure
-          console.log("Trying alternative direct query approach");
+          // Second approach: Use the direct RPC function
+          console.log("Trying alternative direct RPC function approach");
+          type GroupTitleResult = { group_title: string };
+          
           const { data: directRoleData, error: directRoleError } = await supabase
-            .rpc('get_user_group_title', { user_email: userEmail })
-            .maybeSingle();
+            .rpc<GroupTitleResult>('get_user_group_title', { user_email: userEmail });
             
-          if (!directRoleError && directRoleData && directRoleData.group_title) {
-            const title = directRoleData.group_title;
-            console.log("Found role using direct RPC call:", title);
-            sessionStorage.setItem('userRole', title);
-            setDisplayRole(title);
-            
-            const dashboardPath = getDashboardPathByGroupTitle(title);
-            console.log("Redirecting to role-specific dashboard:", dashboardPath);
-            navigate(dashboardPath, { replace: true });
-            return;
+          if (!directRoleError && directRoleData && directRoleData.length > 0) {
+            const result = directRoleData[0];
+            if (result && result.group_title) {
+              const title = result.group_title;
+              console.log("Found role using direct RPC call:", title);
+              sessionStorage.setItem('userRole', title);
+              setDisplayRole(title);
+              
+              const dashboardPath = getDashboardPathByGroupTitle(title);
+              console.log("Redirecting to role-specific dashboard:", dashboardPath);
+              navigate(dashboardPath, { replace: true });
+              return;
+            }
           }
         }
         
@@ -165,7 +173,7 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
   }, [loading, navigate, setDisplayRole, onChecked, knownEmailRoleMappings]);
 
   // Helper function to fetch role from database
-  const fetchRoleFromDatabase = async (userId: string, userEmail: string | null) => {
+  const fetchRoleFromDatabase = async (userId: string, userEmail: string | null | undefined) => {
     try {
       // Single database query to get user's group
       const { data: userGroupData, error: userGroupError } = await supabase
@@ -188,18 +196,13 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       }
       
       // Check if we have valid data and extract the user group if available
-      if (userGroupData && 
-          userGroupData.owc_usergroups && 
-          typeof userGroupData.owc_usergroups === 'object') {
-        
+      if (userGroupData && 'owc_usergroups' in userGroupData && userGroupData.owc_usergroups) {
         // Use type assertion after checking the object structure
-        const userGroup = userGroupData.owc_usergroups as unknown;
+        const userGroup = userGroupData.owc_usergroups;
         
-        // Verify that it has the required properties before treating it as UserGroup
-        if (userGroup && 
-            typeof userGroup === 'object' && 
-            'title' in userGroup && 
-            'id' in userGroup && 
+        // Verify that it has the required properties before treating it as a UserGroup
+        if (typeof userGroup === 'object' && userGroup !== null && 
+            'title' in userGroup && 'id' in userGroup && 
             typeof userGroup.title === 'string') {
           
           const title = userGroup.title;

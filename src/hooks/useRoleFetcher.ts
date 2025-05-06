@@ -56,16 +56,17 @@ export const useRoleFetcher = () => {
         };
       }
       
-      // Fetch from database using direct join query if we have the email (using the SQL query provided)
+      // Fetch from database using direct join query if we have the email
       if (email) {
         console.log("Fetching role using direct SQL query for email:", email);
         
+        // First approach: Use a structured join query
         const { data: roleData, error: roleError } = await supabase
           .from('users')
           .select(`
             id,
-            group_title:owc_user_usergroup_map!inner(
-              owc_usergroups!inner(
+            group_title:owc_user_usergroup_map(
+              owc_usergroups(
                 title
               )
             )
@@ -76,39 +77,46 @@ export const useRoleFetcher = () => {
         if (roleError) {
           console.error("Error fetching role with join query:", roleError);
         } else if (roleData && roleData.group_title && roleData.group_title.length > 0) {
-          // Extract the title from the nested structure
-          // The structure is an array of objects, where each object has an owc_usergroups property
+          // The structure is an array of objects, each with an owc_usergroups property
           const groupData = roleData.group_title[0];
-          if (groupData && groupData.owc_usergroups && typeof groupData.owc_usergroups === 'object') {
-            const title = groupData.owc_usergroups.title;
-            
-            if (title && typeof title === 'string') {
-              console.log("Found role in database using join query:", title);
-              sessionStorage.setItem('userRole', title);
-              return {
-                role: title,
-                dashboardPath: getDashboardPathByGroupTitle(title),
-                isAdmin: isAdminRole(title)
-              };
+          if (groupData && groupData.owc_usergroups) {
+            // Safely access the title by first checking the property exists
+            const userGroup = groupData.owc_usergroups;
+            if (userGroup && typeof userGroup === 'object' && 'title' in userGroup) {
+              const title = userGroup.title;
+              
+              if (title && typeof title === 'string') {
+                console.log("Found role in database using join query:", title);
+                sessionStorage.setItem('userRole', title);
+                return {
+                  role: title,
+                  dashboardPath: getDashboardPathByGroupTitle(title),
+                  isAdmin: isAdminRole(title)
+                };
+              }
             }
           }
         }
         
-        // Try alternative query approach directly matching the SQL structure
-        console.log("Trying alternative direct query approach");
+        // Second approach: Use the direct RPC function
+        console.log("Trying alternative direct RPC function approach");
+        type GroupTitleResult = { group_title: string };
+        
         const { data: directRoleData, error: directRoleError } = await supabase
-          .rpc('get_user_group_title', { user_email: email })
-          .maybeSingle();
+          .rpc<GroupTitleResult>('get_user_group_title', { user_email: email });
           
-        if (!directRoleError && directRoleData && directRoleData.group_title) {
-          const title = directRoleData.group_title;
-          console.log("Found role using direct RPC call:", title);
-          sessionStorage.setItem('userRole', title);
-          return {
-            role: title,
-            dashboardPath: getDashboardPathByGroupTitle(title),
-            isAdmin: isAdminRole(title)
-          };
+        if (!directRoleError && directRoleData && directRoleData.length > 0) {
+          const result = directRoleData[0];
+          if (result && result.group_title) {
+            const title = result.group_title;
+            console.log("Found role using direct RPC call:", title);
+            sessionStorage.setItem('userRole', title);
+            return {
+              role: title,
+              dashboardPath: getDashboardPathByGroupTitle(title),
+              isAdmin: isAdminRole(title)
+            };
+          }
         }
       }
       
