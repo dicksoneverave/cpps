@@ -50,7 +50,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       
       if (currentEmail) {
         try {
-          // Step 1: Get user ID from public.users table
+          // Step 1: Get user ID from users table (without schema prefix)
+          console.log("Looking up user ID for email:", currentEmail);
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('id')
@@ -65,10 +66,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           if (userData?.id) {
             setUserId(userData.id);
             
-            // Step 2: Get group ID from public.owc_user_usergroup_map
+            // Step 2: Get group ID from owc_user_usergroup_map (without schema prefix)
             console.log("Looking up group_id for user ID:", userData.id);
             const { data: groupMapData, error: groupMapError } = await supabase
-              .from('public.owc_user_usergroup_map')
+              .from('owc_user_usergroup_map')
               .select('group_id')
               .eq('auth_user_id', userData.id)
               .maybeSingle();
@@ -82,9 +83,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
               console.log("Found group_id:", groupMapData.group_id);
               setGroupId(groupMapData.group_id);
               
-              // Step 3: Get group title from public.owc_usergroups
+              // Step 3: Get group title from owc_usergroups (without schema prefix)
               const { data: groupData, error: groupError } = await supabase
-                .from('public.owc_usergroups')
+                .from('owc_usergroups')
                 .select('title')
                 .eq('id', groupMapData.group_id)
                 .maybeSingle();
@@ -143,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           <p><strong>Stored Role in Session:</strong> {storedRole || 'Not stored in session'}</p>
           <p><strong>Current URL:</strong> {window.location.pathname}</p>
           <p><strong>Expected URL:</strong> {getDashboardPathFromRole(storedRole || userRole)}</p>
-          <p><strong>User ID from public.users:</strong> {userId || 'Not found'}</p>
+          <p><strong>User ID from users:</strong> {userId || 'Not found'}</p>
           <p><strong>Group ID from owc_user_usergroup_map:</strong> {groupId !== null ? groupId : 'Not found'}</p>
           <p><strong>Group Title from owc_usergroups:</strong> {groupTitle || 'Not found'}</p>
         </div>
