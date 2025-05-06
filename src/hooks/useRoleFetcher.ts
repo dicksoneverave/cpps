@@ -56,16 +56,15 @@ export const useRoleFetcher = () => {
         };
       }
       
-      // Fetch from database using direct join query if we have the email (most efficient)
+      // Fetch from database using direct join query if we have the email (using the SQL query provided)
       if (email) {
-        console.log("Fetching role using direct join query for email:", email);
+        console.log("Fetching role using direct SQL query for email:", email);
         
         const { data: roleData, error: roleError } = await supabase
           .from('users')
           .select(`
             id,
-            owc_user_usergroup_map!inner(
-              group_id,
+            group_title:owc_user_usergroup_map!inner(
               owc_usergroups!inner(
                 title
               )
@@ -76,14 +75,34 @@ export const useRoleFetcher = () => {
           
         if (roleError) {
           console.error("Error fetching role with join query:", roleError);
-        } else if (roleData && 
-                  roleData.owc_user_usergroup_map && 
-                  roleData.owc_user_usergroup_map.length > 0 &&
-                  roleData.owc_user_usergroup_map[0].owc_usergroups &&
-                  roleData.owc_user_usergroup_map[0].owc_usergroups.title) {
+        } else if (roleData && roleData.group_title && roleData.group_title.length > 0) {
+          // Extract the title from the nested structure
+          // The structure is an array of objects, where each object has an owc_usergroups property
+          const groupData = roleData.group_title[0];
+          if (groupData && groupData.owc_usergroups && typeof groupData.owc_usergroups === 'object') {
+            const title = groupData.owc_usergroups.title;
+            
+            if (title && typeof title === 'string') {
+              console.log("Found role in database using join query:", title);
+              sessionStorage.setItem('userRole', title);
+              return {
+                role: title,
+                dashboardPath: getDashboardPathByGroupTitle(title),
+                isAdmin: isAdminRole(title)
+              };
+            }
+          }
+        }
+        
+        // Try alternative query approach directly matching the SQL structure
+        console.log("Trying alternative direct query approach");
+        const { data: directRoleData, error: directRoleError } = await supabase
+          .rpc('get_user_group_title', { user_email: email })
+          .maybeSingle();
           
-          const title = roleData.owc_user_usergroup_map[0].owc_usergroups.title;
-          console.log("Found role in database using join query:", title);
+        if (!directRoleError && directRoleData && directRoleData.group_title) {
+          const title = directRoleData.group_title;
+          console.log("Found role using direct RPC call:", title);
           sessionStorage.setItem('userRole', title);
           return {
             role: title,
