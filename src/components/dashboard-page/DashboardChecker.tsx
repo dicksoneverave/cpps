@@ -109,6 +109,12 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
   // Helper function to fetch role from database
   const fetchRoleFromDatabase = async (userId: string, userEmail: string | null) => {
     try {
+      // Define the user group type for type safety
+      type UserGroup = {
+        title: string;
+        id: string | number;
+      };
+      
       // Single database query to get user's group
       const { data: userGroupData, error: userGroupError } = await supabase
         .from('owc_user_usergroup_map')
@@ -129,24 +135,26 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         return;
       }
       
-      // More robust type checking with explicit structure
-      type UserGroup = {
-        title: string;
-        id: string | number;
-      };
-      
+      // Check if we have valid data and the owc_usergroups property
       if (userGroupData && userGroupData.owc_usergroups) {
-        // Using a more precise type assertion
-        const userGroup = userGroupData.owc_usergroups as UserGroup;
-        
-        if (userGroup && userGroup.title) {
-          console.log("Found user role directly:", userGroup.title);
-          sessionStorage.setItem('userRole', userGroup.title);
-          setDisplayRole(userGroup.title);
+        // Make sure owc_usergroups is not an error object before type assertion
+        if (
+          typeof userGroupData.owc_usergroups === 'object' && 
+          userGroupData.owc_usergroups !== null &&
+          !('error' in userGroupData.owc_usergroups)
+        ) {
+          // Now we can safely cast to UserGroup
+          const userGroup = userGroupData.owc_usergroups as UserGroup;
           
-          const dashboardPath = getDashboardPathByGroupTitle(userGroup.title);
-          navigate(dashboardPath, { replace: true });
-          return;
+          if (userGroup && userGroup.title) {
+            console.log("Found user role directly:", userGroup.title);
+            sessionStorage.setItem('userRole', userGroup.title);
+            setDisplayRole(userGroup.title);
+            
+            const dashboardPath = getDashboardPathByGroupTitle(userGroup.title);
+            navigate(dashboardPath, { replace: true });
+            return;
+          }
         }
       }
       

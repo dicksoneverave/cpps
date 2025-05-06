@@ -74,17 +74,24 @@ export const useRoleFetcher = () => {
         if (error) {
           console.error("Database error fetching role:", error);
         } else if (data && data.owc_usergroups) {
-          // Using a more precise type assertion with our defined type
-          const userGroup = data.owc_usergroups as UserGroup;
-          
-          if (userGroup && userGroup.title) {
-            console.log("Found role in database:", userGroup.title);
-            sessionStorage.setItem('userRole', userGroup.title);
-            return {
-              role: userGroup.title,
-              dashboardPath: getDashboardPathByGroupTitle(userGroup.title),
-              isAdmin: isAdminRole(userGroup.title)
-            };
+          // Check if owc_usergroups is not an error object before attempting type assertion
+          if (
+            typeof data.owc_usergroups === 'object' && 
+            data.owc_usergroups !== null &&
+            !('error' in data.owc_usergroups)
+          ) {
+            // Now we can safely cast to UserGroup
+            const userGroup = data.owc_usergroups as UserGroup;
+            
+            if (userGroup && userGroup.title) {
+              console.log("Found role in database:", userGroup.title);
+              sessionStorage.setItem('userRole', userGroup.title);
+              return {
+                role: userGroup.title,
+                dashboardPath: getDashboardPathByGroupTitle(userGroup.title),
+                isAdmin: isAdminRole(userGroup.title)
+              };
+            }
           }
         }
       }
