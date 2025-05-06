@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
  */
 export const useAuthenticator = (
   email: string, 
+  password: string,
   setLoading: (loading: boolean) => void,
   setError: (error: string | null) => void,
   setIsAuthenticated: (isAuthenticated: boolean) => void
