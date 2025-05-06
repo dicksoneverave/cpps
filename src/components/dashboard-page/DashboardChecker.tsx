@@ -135,14 +135,9 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         return;
       }
       
-      // Check if we have valid data and the owc_usergroups property exists and is a valid object
-      if (userGroupData && 
-          userGroupData.owc_usergroups && 
-          typeof userGroupData.owc_usergroups === 'object' && 
-          !('error' in userGroupData.owc_usergroups) &&
-          userGroupData.owc_usergroups !== null) {
-        
-        // Now we can safely cast to UserGroup
+      // Check if we have valid data and extract the user group if available
+      if (userGroupData?.owc_usergroups) {
+        // Safe access with nullish coalescing to handle potential null value
         const userGroup = userGroupData.owc_usergroups as UserGroup;
         
         if (userGroup.title) {
