@@ -1518,7 +1518,7 @@ export type Database = {
         }
         Relationships: []
       }
-      owc_users: {
+      owc_users_duplicate: {
         Row: {
           activation: string | null
           authProvider: string | null
@@ -2144,15 +2144,7 @@ export type Database = {
       }
     }
     Views: {
-      user_mapping: {
-        Row: {
-          auth_user_id: string | null
-          email: string | null
-          name: string | null
-          owc_user_id: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       create_owc_user: {

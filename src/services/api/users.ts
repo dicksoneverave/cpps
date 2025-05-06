@@ -15,11 +15,11 @@ export async function getUsers() {
 }
 
 export async function getUserById(userId: string | number) {
-  // Convert userId to string for the query
+  // For the query, we need to use the correct type based on the column definition
   const { data, error } = await supabase
     .from('owc_users')
     .select('id, name, email, registerDate, username, sendEmail, block, authProvider')
-    .eq('id', userId.toString())
+    .eq('id', userId)
     .single();
 
   if (error) {
@@ -40,7 +40,7 @@ export async function getUserGroup(userId: string | number) {
     return null;
   }
   
-  // Fixed query to avoid excessive type instantiation
+  // Use a more explicit approach to avoid type instantiation issues
   const { data, error } = await supabase
     .from('owc_user_usergroup_map')
     .select('group_id')
