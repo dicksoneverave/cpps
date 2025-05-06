@@ -8,6 +8,18 @@ interface RoleData {
   groupTitle: string | null;
 }
 
+// Define the structure of data returned from the combined query
+interface UserGroupData {
+  id: string;
+  owc_user_usergroup_map: {
+    group_id: number;
+    owc_usergroups: {
+      id: number;
+      title: string;
+    };
+  }[];
+}
+
 /**
  * Custom hook that fetches user role data from Supabase
  * @returns Object containing user ID, group ID, and group title
@@ -52,8 +64,10 @@ export const useRoleData = (): RoleData => {
             setUserId(data.id);
             
             // Extract the group_id and title from the nested data structure
-            if (data.owc_user_usergroup_map && data.owc_user_usergroup_map.length > 0) {
-              const userGroup = data.owc_user_usergroup_map[0];
+            // Cast data to UserGroupData type to help TypeScript understand the structure
+            const userData = data as unknown as UserGroupData;
+            if (userData.owc_user_usergroup_map && userData.owc_user_usergroup_map.length > 0) {
+              const userGroup = userData.owc_user_usergroup_map[0];
               setGroupId(userGroup.group_id);
               
               if (userGroup.owc_usergroups) {
