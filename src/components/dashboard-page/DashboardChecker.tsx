@@ -129,21 +129,21 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         return;
       }
       
-      // FIX: Add explicit null check and type guard to safely access nested properties
+      // Improved type checking with proper type assertions
       if (
         userGroupData && 
-        userGroupData.owc_usergroups !== null && 
-        typeof userGroupData.owc_usergroups === 'object' && 
         userGroupData.owc_usergroups && 
-        'title' in userGroupData.owc_usergroups
+        typeof userGroupData.owc_usergroups === 'object'
       ) {
-        const groupTitle = userGroupData.owc_usergroups.title;
-        if (groupTitle) {
-          console.log("Found user role directly:", groupTitle);
-          sessionStorage.setItem('userRole', groupTitle);
-          setDisplayRole(groupTitle);
+        // Use type assertion to tell TypeScript this is a valid object with title property
+        const userGroup = userGroupData.owc_usergroups as { title?: string };
+        
+        if (userGroup.title) {
+          console.log("Found user role directly:", userGroup.title);
+          sessionStorage.setItem('userRole', userGroup.title);
+          setDisplayRole(userGroup.title);
           
-          const dashboardPath = getDashboardPathByGroupTitle(groupTitle);
+          const dashboardPath = getDashboardPathByGroupTitle(userGroup.title);
           navigate(dashboardPath, { replace: true });
           return;
         }

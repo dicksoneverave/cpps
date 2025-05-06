@@ -67,22 +67,17 @@ export const useRoleFetcher = () => {
           
         if (error) {
           console.error("Database error fetching role:", error);
-        } else if (
-          data && 
-          data.owc_usergroups !== null && 
-          typeof data.owc_usergroups === 'object' && 
-          data.owc_usergroups && 
-          'title' in data.owc_usergroups
-        ) {
-          // FIX: Add comprehensive null checks and type guard to safely access nested properties
-          const groupTitle = data.owc_usergroups.title;
-          if (groupTitle) {
-            console.log("Found role in database:", groupTitle);
-            sessionStorage.setItem('userRole', groupTitle);
+        } else if (data && data.owc_usergroups) {
+          // Improved type handling with safer assertion
+          const userGroup = data.owc_usergroups as { title?: string };
+          
+          if (userGroup.title) {
+            console.log("Found role in database:", userGroup.title);
+            sessionStorage.setItem('userRole', userGroup.title);
             return {
-              role: groupTitle,
-              dashboardPath: getDashboardPathByGroupTitle(groupTitle),
-              isAdmin: isAdminRole(groupTitle)
+              role: userGroup.title,
+              dashboardPath: getDashboardPathByGroupTitle(userGroup.title),
+              isAdmin: isAdminRole(userGroup.title)
             };
           }
         }
