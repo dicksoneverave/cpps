@@ -132,14 +132,19 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       // Check if we have valid data and extract the user group if available
       if (userGroupData && 
           userGroupData.owc_usergroups && 
-          typeof userGroupData.owc_usergroups === 'object' && 
-          'title' in userGroupData.owc_usergroups &&
-          'id' in userGroupData.owc_usergroups) {
+          typeof userGroupData.owc_usergroups === 'object') {
         
-        // Now we can safely access the title property
-        const title = userGroupData.owc_usergroups.title;
+        // Use type assertion after checking the object structure
+        const userGroup = userGroupData.owc_usergroups as unknown;
         
-        if (title) {
+        // Verify that it has the required properties before treating it as UserGroup
+        if (userGroup && 
+            typeof userGroup === 'object' && 
+            'title' in userGroup && 
+            'id' in userGroup && 
+            typeof userGroup.title === 'string') {
+          
+          const title = userGroup.title;
           console.log("Found user role directly:", title);
           sessionStorage.setItem('userRole', title);
           setDisplayRole(title);
