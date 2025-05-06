@@ -144,9 +144,9 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           // Second approach: Use the direct RPC function
           console.log("Trying alternative direct RPC function approach");
           
-          // Properly specify the generic type for the RPC call
+          // Fix: Use proper type parameters for the RPC call
           const { data: directRoleData, error: directRoleError } = await supabase
-            .rpc<GroupTitleResult, { user_email: string }>(
+            .rpc<GroupTitleResult[]>(
               'get_user_group_title', 
               { user_email: userEmail }
             );
@@ -217,7 +217,7 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       // Check if we have valid data and extract the user group if available
       if (userGroupData && userGroupData.owc_usergroups) {
         // Use type assertion after checking the object structure
-        const userGroup = userGroupData.owc_usergroups;
+        const userGroup = userGroupData.owc_usergroups as unknown;
         
         // Add null check and type guard
         if (userGroup && typeof userGroup === 'object' && 

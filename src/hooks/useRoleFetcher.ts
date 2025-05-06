@@ -107,9 +107,9 @@ export const useRoleFetcher = () => {
         // Second approach: Use the direct RPC function
         console.log("Trying alternative direct RPC function approach");
         
-        // Properly specify the generic type for the RPC call
+        // Fix: Use proper type parameters for the RPC call
         const { data: directRoleData, error: directRoleError } = await supabase
-          .rpc<GroupTitleResult, { user_email: string }>(
+          .rpc<GroupTitleResult[]>(
             'get_user_group_title', 
             { user_email: email }
           );
