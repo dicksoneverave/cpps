@@ -15,10 +15,11 @@ export async function getUsers() {
 }
 
 export async function getUserById(userId: string | number) {
+  // Convert userId to string for the query
   const { data, error } = await supabase
     .from('owc_users')
     .select('id, name, email, registerDate, username, sendEmail, block, authProvider')
-    .eq('id', userId)
+    .eq('id', userId.toString())
     .single();
 
   if (error) {
@@ -29,21 +30,27 @@ export async function getUserById(userId: string | number) {
 }
 
 export async function getUserGroup(userId: string | number) {
-  // Convert userId to number if it's a string containing only digits
+  // Ensure userId is a number when it needs to be
   const numericUserId = typeof userId === 'string' ? 
-    /^\d+$/.test(userId) ? parseInt(userId, 10) : userId : 
-    userId;
+    parseInt(userId, 10) : userId;
   
+  // Only proceed if it's a valid number
+  if (isNaN(numericUserId)) {
+    console.error("Invalid user ID provided:", userId);
+    return null;
+  }
+  
+  // Fixed query to avoid excessive type instantiation
   const { data, error } = await supabase
     .from('owc_user_usergroup_map')
     .select('group_id')
-    .eq('user_id', numericUserId)
-    .maybeSingle();
+    .eq('user_id', numericUserId);
 
   if (error) {
     console.error("Error fetching user group:", error);
     return null;
   }
 
-  return data;
+  // Return the first result if available
+  return data && data.length > 0 ? data[0] : null;
 }
