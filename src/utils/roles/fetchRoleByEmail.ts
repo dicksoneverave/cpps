@@ -38,9 +38,9 @@ export const fetchRoleByEmail = async (email: string): Promise<string | null> =>
     
     // Get the user directly from auth
     const { data: userData, error: userError } = await supabase.auth.admin.listUsers({
-      filters: {
-        email: email
-      }
+      page: 1,
+      perPage: 1,
+      query: email
     });
     
     if (userError) {

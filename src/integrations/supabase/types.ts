@@ -1518,66 +1518,6 @@ export type Database = {
         }
         Relationships: []
       }
-      owc_users_duplicate: {
-        Row: {
-          activation: string | null
-          authProvider: string | null
-          block: string | null
-          email: string | null
-          id: number
-          lastResetTime: string | null
-          lastvisitDate: string | null
-          name: string | null
-          otep: string | null
-          otpKey: string | null
-          params: Json | null
-          password: string | null
-          registerDate: string | null
-          requireReset: string | null
-          resetCount: string | null
-          sendEmail: string | null
-          username: string | null
-        }
-        Insert: {
-          activation?: string | null
-          authProvider?: string | null
-          block?: string | null
-          email?: string | null
-          id: number
-          lastResetTime?: string | null
-          lastvisitDate?: string | null
-          name?: string | null
-          otep?: string | null
-          otpKey?: string | null
-          params?: Json | null
-          password?: string | null
-          registerDate?: string | null
-          requireReset?: string | null
-          resetCount?: string | null
-          sendEmail?: string | null
-          username?: string | null
-        }
-        Update: {
-          activation?: string | null
-          authProvider?: string | null
-          block?: string | null
-          email?: string | null
-          id?: number
-          lastResetTime?: string | null
-          lastvisitDate?: string | null
-          name?: string | null
-          otep?: string | null
-          otpKey?: string | null
-          params?: Json | null
-          password?: string | null
-          registerDate?: string | null
-          requireReset?: string | null
-          resetCount?: string | null
-          sendEmail?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
       owcbankaccountmaster: {
         Row: {
           OBANAccountID: number
