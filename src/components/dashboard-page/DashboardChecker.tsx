@@ -136,16 +136,20 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       }
       
       // Check if we have valid data and extract the user group if available
-      if (userGroupData?.owc_usergroups) {
-        // Safe access with nullish coalescing to handle potential null value
-        const userGroup = userGroupData.owc_usergroups as UserGroup;
+      if (userGroupData?.owc_usergroups && 
+          typeof userGroupData.owc_usergroups === 'object' && 
+          'title' in userGroupData.owc_usergroups &&
+          'id' in userGroupData.owc_usergroups) {
         
-        if (userGroup.title) {
-          console.log("Found user role directly:", userGroup.title);
-          sessionStorage.setItem('userRole', userGroup.title);
-          setDisplayRole(userGroup.title);
+        // Now we can safely access the title property
+        const title = userGroupData.owc_usergroups.title;
+        
+        if (title) {
+          console.log("Found user role directly:", title);
+          sessionStorage.setItem('userRole', title);
+          setDisplayRole(title);
           
-          const dashboardPath = getDashboardPathByGroupTitle(userGroup.title);
+          const dashboardPath = getDashboardPathByGroupTitle(title);
           navigate(dashboardPath, { replace: true });
           return;
         }

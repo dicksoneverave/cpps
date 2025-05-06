@@ -73,17 +73,21 @@ export const useRoleFetcher = () => {
           
         if (error) {
           console.error("Database error fetching role:", error);
-        } else if (data?.owc_usergroups) {
-          // Safe access with type assertion since we've confirmed owc_usergroups exists
-          const userGroup = data.owc_usergroups as UserGroup;
+        } else if (data?.owc_usergroups && 
+                   typeof data.owc_usergroups === 'object' && 
+                   'title' in data.owc_usergroups && 
+                   'id' in data.owc_usergroups) {
           
-          if (userGroup.title) {
-            console.log("Found role in database:", userGroup.title);
-            sessionStorage.setItem('userRole', userGroup.title);
+          // Now we can safely access the title property
+          const title = data.owc_usergroups.title;
+          
+          if (title) {
+            console.log("Found role in database:", title);
+            sessionStorage.setItem('userRole', title);
             return {
-              role: userGroup.title,
-              dashboardPath: getDashboardPathByGroupTitle(userGroup.title),
-              isAdmin: isAdminRole(userGroup.title)
+              role: title,
+              dashboardPath: getDashboardPathByGroupTitle(title),
+              isAdmin: isAdminRole(title)
             };
           }
         }
