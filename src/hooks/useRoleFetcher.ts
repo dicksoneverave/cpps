@@ -16,6 +16,11 @@ export const useRoleFetcher = () => {
     title: string;
     id: string | number;
   };
+
+  // Define type for the RPC function result
+  interface GroupTitleResult {
+    group_title: string;
+  }
   
   // Get role with optimized fetching strategy
   const fetchRole = useCallback(async (userId?: string, email?: string): Promise<{
@@ -76,14 +81,14 @@ export const useRoleFetcher = () => {
           
         if (roleError) {
           console.error("Error fetching role with join query:", roleError);
-        } else if (roleData && roleData.group_title && roleData.group_title.length > 0) {
+        } else if (roleData && roleData.group_title && Array.isArray(roleData.group_title) && roleData.group_title.length > 0) {
           // The structure is an array of objects, each with an owc_usergroups property
           const groupData = roleData.group_title[0];
-          if (groupData && groupData.owc_usergroups) {
+          if (groupData && typeof groupData === 'object' && 'owc_usergroups' in groupData) {
+            const userGroups = groupData.owc_usergroups;
             // Safely access the title by first checking the property exists
-            const userGroup = groupData.owc_usergroups;
-            if (userGroup && typeof userGroup === 'object' && 'title' in userGroup) {
-              const title = userGroup.title;
+            if (userGroups && typeof userGroups === 'object' && 'title' in userGroups) {
+              const title = userGroups.title;
               
               if (title && typeof title === 'string') {
                 console.log("Found role in database using join query:", title);
@@ -100,12 +105,11 @@ export const useRoleFetcher = () => {
         
         // Second approach: Use the direct RPC function
         console.log("Trying alternative direct RPC function approach");
-        type GroupTitleResult = { group_title: string };
         
         const { data: directRoleData, error: directRoleError } = await supabase
           .rpc<GroupTitleResult>('get_user_group_title', { user_email: email });
           
-        if (!directRoleError && directRoleData && directRoleData.length > 0) {
+        if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
           const result = directRoleData[0];
           if (result && result.group_title) {
             const title = result.group_title;

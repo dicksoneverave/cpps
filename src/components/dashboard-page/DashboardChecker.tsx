@@ -14,6 +14,11 @@ interface DashboardCheckerProps {
   onChecked: () => void;
 }
 
+// Define type for the RPC function result
+interface GroupTitleResult {
+  group_title: string;
+}
+
 const DashboardChecker: React.FC<DashboardCheckerProps> = ({ 
   setDisplayRole,
   onChecked
@@ -102,14 +107,14 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
             
           if (roleError) {
             console.error("Error fetching role with join query:", roleError);
-          } else if (roleData && roleData.group_title && roleData.group_title.length > 0) {
+          } else if (roleData && roleData.group_title && Array.isArray(roleData.group_title) && roleData.group_title.length > 0) {
             // Extract the title from the nested structure
             const groupData = roleData.group_title[0];
             // Safely access the nested properties
-            if (groupData && 'owc_usergroups' in groupData && groupData.owc_usergroups) {
-              const userGroup = groupData.owc_usergroups;
-              if (userGroup && typeof userGroup === 'object' && 'title' in userGroup) {
-                const title = userGroup.title;
+            if (groupData && typeof groupData === 'object' && 'owc_usergroups' in groupData) {
+              const userGroups = groupData.owc_usergroups;
+              if (userGroups && typeof userGroups === 'object' && 'title' in userGroups) {
+                const title = userGroups.title;
                 
                 if (title && typeof title === 'string') {
                   console.log("Found role in database using join query:", title);
@@ -127,12 +132,11 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           
           // Second approach: Use the direct RPC function
           console.log("Trying alternative direct RPC function approach");
-          type GroupTitleResult = { group_title: string };
           
           const { data: directRoleData, error: directRoleError } = await supabase
             .rpc<GroupTitleResult>('get_user_group_title', { user_email: userEmail });
             
-          if (!directRoleError && directRoleData && directRoleData.length > 0) {
+          if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
             const result = directRoleData[0];
             if (result && result.group_title) {
               const title = result.group_title;
@@ -196,12 +200,12 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       }
       
       // Check if we have valid data and extract the user group if available
-      if (userGroupData && 'owc_usergroups' in userGroupData && userGroupData.owc_usergroups) {
+      if (userGroupData && userGroupData.owc_usergroups) {
         // Use type assertion after checking the object structure
         const userGroup = userGroupData.owc_usergroups;
         
         // Verify that it has the required properties before treating it as a UserGroup
-        if (typeof userGroup === 'object' && userGroup !== null && 
+        if (userGroup && typeof userGroup === 'object' && 
             'title' in userGroup && 'id' in userGroup && 
             typeof userGroup.title === 'string') {
           
