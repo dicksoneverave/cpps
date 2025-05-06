@@ -1,16 +1,18 @@
 
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface RoleDataFetcherProps {
-  children: (data: {
-    userId: string | null;
-    groupId: number | null;
-    groupTitle: string | null;
-  }) => React.ReactNode;
+interface RoleData {
+  userId: string | null;
+  groupId: number | null;
+  groupTitle: string | null;
 }
 
-const RoleDataFetcher: React.FC<RoleDataFetcherProps> = ({ children }) => {
+/**
+ * Custom hook that fetches user role data from Supabase
+ * @returns Object containing user ID, group ID, and group title
+ */
+export const useRoleData = (): RoleData => {
   const [userId, setUserId] = useState<string | null>(null);
   const [groupId, setGroupId] = useState<number | null>(null);
   const [groupTitle, setGroupTitle] = useState<string | null>(null);
@@ -86,7 +88,5 @@ const RoleDataFetcher: React.FC<RoleDataFetcherProps> = ({ children }) => {
     fetchUserRoleDetails();
   }, []);
 
-  return <>{children({ userId, groupId, groupTitle })}</>;
+  return { userId, groupId, groupTitle };
 };
-
-export default RoleDataFetcher;
