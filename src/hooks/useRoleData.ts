@@ -38,7 +38,7 @@ export const useRoleData = (): RoleData => {
         try {
           console.log("Fetching role data for email:", currentEmail);
           
-          // Get the role title using a direct query that joins all the necessary tables
+          // Execute the direct SQL-like query that joins users, owc_user_usergroup_map, and owc_usergroups
           const { data, error } = await supabase
             .from('users')
             .select(`
@@ -56,7 +56,7 @@ export const useRoleData = (): RoleData => {
             
           if (error) {
             console.error("Error fetching user role data:", error);
-            return;
+            // Don't return here, we'll fall back to the step-by-step approach
           }
           
           if (data) {
@@ -73,6 +73,11 @@ export const useRoleData = (): RoleData => {
               if (userGroup.owc_usergroups) {
                 setGroupTitle(userGroup.owc_usergroups.title);
                 console.log("Found group title:", userGroup.owc_usergroups.title);
+                
+                // Save the role in sessionStorage for persistence
+                if (userGroup.owc_usergroups.title) {
+                  sessionStorage.setItem('userRole', userGroup.owc_usergroups.title);
+                }
               }
             }
           } else {
@@ -128,6 +133,9 @@ export const useRoleData = (): RoleData => {
                 if (groupData?.title) {
                   console.log("Found group title:", groupData.title);
                   setGroupTitle(groupData.title);
+                  
+                  // Save the role in sessionStorage for persistence
+                  sessionStorage.setItem('userRole', groupData.title);
                 } else {
                   console.log("No title found for group ID:", groupMapData.group_id);
                 }
