@@ -56,7 +56,44 @@ export const useRoleFetcher = () => {
         };
       }
       
-      // Fetch from database if we have user ID (slower)
+      // Fetch from database using direct join query if we have the email (most efficient)
+      if (email) {
+        console.log("Fetching role using direct join query for email:", email);
+        
+        const { data: roleData, error: roleError } = await supabase
+          .from('users')
+          .select(`
+            id,
+            owc_user_usergroup_map!inner(
+              group_id,
+              owc_usergroups!inner(
+                title
+              )
+            )
+          `)
+          .eq('email', email)
+          .maybeSingle();
+          
+        if (roleError) {
+          console.error("Error fetching role with join query:", roleError);
+        } else if (roleData && 
+                  roleData.owc_user_usergroup_map && 
+                  roleData.owc_user_usergroup_map.length > 0 &&
+                  roleData.owc_user_usergroup_map[0].owc_usergroups &&
+                  roleData.owc_user_usergroup_map[0].owc_usergroups.title) {
+          
+          const title = roleData.owc_user_usergroup_map[0].owc_usergroups.title;
+          console.log("Found role in database using join query:", title);
+          sessionStorage.setItem('userRole', title);
+          return {
+            role: title,
+            dashboardPath: getDashboardPathByGroupTitle(title),
+            isAdmin: isAdminRole(title)
+          };
+        }
+      }
+      
+      // Legacy approach - fetch using userId if available
       if (userId) {
         console.log("Fetching role from database for userId:", userId);
         const { data, error } = await supabase

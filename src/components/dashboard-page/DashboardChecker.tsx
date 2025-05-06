@@ -88,10 +88,54 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           return;
         }
         
-        // Last resort: fetch role from database
+        // Direct database query using email (most efficient)
+        if (userEmail) {
+          console.log("Fetching role using direct join query for email:", userEmail);
+          
+          const { data: roleData, error: roleError } = await supabase
+            .from('users')
+            .select(`
+              id,
+              owc_user_usergroup_map!inner(
+                group_id,
+                owc_usergroups!inner(
+                  title
+                )
+              )
+            `)
+            .eq('email', userEmail)
+            .maybeSingle();
+            
+          if (roleError) {
+            console.error("Error fetching role with join query:", roleError);
+          } else if (roleData && 
+                    roleData.owc_user_usergroup_map && 
+                    roleData.owc_user_usergroup_map.length > 0 &&
+                    roleData.owc_user_usergroup_map[0].owc_usergroups &&
+                    roleData.owc_user_usergroup_map[0].owc_usergroups.title) {
+            
+            const title = roleData.owc_user_usergroup_map[0].owc_usergroups.title;
+            console.log("Found role in database using join query:", title);
+            sessionStorage.setItem('userRole', title);
+            setDisplayRole(title);
+            
+            const dashboardPath = getDashboardPathByGroupTitle(title);
+            console.log("Redirecting to role-specific dashboard:", dashboardPath);
+            navigate(dashboardPath, { replace: true });
+            return;
+          }
+        }
+        
+        // Legacy approach - fetch using userId if available
         if (data.session?.user?.id) {
           console.log("Fetching role from database for user:", data.session.user.id);
           await fetchRoleFromDatabase(data.session.user.id, userEmail);
+        } else {
+          // Default to basic user if no role found
+          console.log("No specific role found, setting default role");
+          const defaultRole = "User";
+          sessionStorage.setItem('userRole', defaultRole);
+          setDisplayRole(defaultRole);
         }
       } catch (error) {
         console.error("Error checking session/role:", error);
@@ -104,7 +148,7 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
     if (!loading) {
       checkSessionAndRole();
     }
-  }, [loading, navigate, setDisplayRole, onChecked]);
+  }, [loading, navigate, setDisplayRole, onChecked, knownEmailRoleMappings]);
 
   // Helper function to fetch role from database
   const fetchRoleFromDatabase = async (userId: string, userEmail: string | null) => {
