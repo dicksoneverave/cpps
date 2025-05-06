@@ -67,8 +67,14 @@ export const useRoleFetcher = () => {
           
         if (error) {
           console.error("Database error fetching role:", error);
-        } else if (data && data.owc_usergroups !== null && typeof data.owc_usergroups === 'object') {
-          // FIX: Add explicit null check before accessing data.owc_usergroups
+        } else if (
+          data && 
+          data.owc_usergroups !== null && 
+          typeof data.owc_usergroups === 'object' && 
+          data.owc_usergroups && 
+          'title' in data.owc_usergroups
+        ) {
+          // FIX: Add comprehensive null checks and type guard to safely access nested properties
           const groupTitle = data.owc_usergroups.title;
           if (groupTitle) {
             console.log("Found role in database:", groupTitle);
