@@ -73,11 +73,10 @@ export const useRoleFetcher = () => {
           
         if (error) {
           console.error("Database error fetching role:", error);
-        } else if (data && data.owc_usergroups) {
+        } else if (data && data.owc_usergroups !== null) {
           // Check if owc_usergroups is not an error object before attempting type assertion
           if (
             typeof data.owc_usergroups === 'object' && 
-            data.owc_usergroups !== null &&
             !('error' in data.owc_usergroups)
           ) {
             // Now we can safely cast to UserGroup

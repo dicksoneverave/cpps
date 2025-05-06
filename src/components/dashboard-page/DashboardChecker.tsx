@@ -136,11 +136,10 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
       }
       
       // Check if we have valid data and the owc_usergroups property
-      if (userGroupData && userGroupData.owc_usergroups) {
+      if (userGroupData && userGroupData.owc_usergroups !== null) {
         // Make sure owc_usergroups is not an error object before type assertion
         if (
           typeof userGroupData.owc_usergroups === 'object' && 
-          userGroupData.owc_usergroups !== null &&
           !('error' in userGroupData.owc_usergroups)
         ) {
           // Now we can safely cast to UserGroup
