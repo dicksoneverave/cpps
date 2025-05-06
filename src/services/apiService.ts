@@ -123,28 +123,39 @@ export const getUserById = async (userId: number): Promise<User | null> => {
   return data;
 };
 
-// Get user's group
+// Get user's group - Fixed the excessive type instantiation and error handling
 export const getUserGroup = async (userId: number): Promise<UserGroup | null> => {
   try {
-    const { data, error } = await supabase
+    // First query to get the group_id
+    const { data: mapData, error: mapError } = await supabase
       .from('owc_user_usergroup_map')
-      .select(`
-        group_id,
-        owc_usergroups!inner(id, parent_id, title, rgt, lft)
-      `)
+      .select('group_id')
       .eq('user_id', userId)
       .single();
 
-    if (error) {
-      console.error(`Error fetching user group for user ${userId}:`, error);
+    if (mapError) {
+      console.error(`Error fetching user group mapping for user ${userId}:`, mapError);
       return null;
     }
 
-    if (data && data.owc_usergroups) {
-      return data.owc_usergroups as UserGroup;
+    if (!mapData || !mapData.group_id) {
+      console.log(`No group mapping found for user ${userId}`);
+      return null;
     }
-    
-    return null;
+
+    // Second query to get the group data
+    const { data: groupData, error: groupError } = await supabase
+      .from('owc_usergroups')
+      .select('*')
+      .eq('id', mapData.group_id)
+      .single();
+
+    if (groupError) {
+      console.error(`Error fetching user group with id ${mapData.group_id}:`, groupError);
+      return null;
+    }
+
+    return groupData as UserGroup;
   } catch (error) {
     console.error(`Error in getUserGroup:`, error);
     return null;

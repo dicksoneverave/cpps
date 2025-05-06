@@ -14,7 +14,7 @@ export interface LoginResponse {
   userRole?: string;
 }
 
-// Define a proper interface for userData that includes owc_user_id
+// Define a proper interface for userData that includes owc_user_id and required fields
 interface CustomUserData {
   email: string;
   id: string;
@@ -57,7 +57,12 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
             customUser: {
               email,
               name: "Administrator",
-              role: "OWC Admin"
+              role: "OWC Admin",
+              // Add the required fields for CustomUserData
+              id: authData?.user?.id || "admin-id",
+              password: "not-stored",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             },
             userRole: "OWC Admin"
           };
@@ -76,7 +81,12 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
         customUser: {
           email,
           name: "Administrator",
-          role: "OWC Admin"
+          role: "OWC Admin",
+          // Add the required fields for CustomUserData
+          id: "admin-id",
+          password: "not-stored",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         },
         userRole: "OWC Admin"
       };
@@ -114,7 +124,12 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
         customUser: {
           email,
           name: email.split('@')[0],
-          role
+          role,
+          // Add the required fields for CustomUserData
+          id: email,
+          password: "not-stored",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         },
         userRole: role
       };
@@ -179,7 +194,10 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
               error: null,
               customUser: {
                 ...regularUserData,
-                role: userRole
+                role: userRole,
+                // Ensure created_at and updated_at are available
+                created_at: regularUserData.created_at || new Date().toISOString(),
+                updated_at: regularUserData.updated_at || new Date().toISOString()
               },
               userRole: userRole
             };
@@ -195,7 +213,10 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
               error: null,
               customUser: {
                 ...regularUserData,
-                role: "User"
+                role: "User",
+                // Ensure created_at and updated_at are available
+                created_at: regularUserData.created_at || new Date().toISOString(),
+                updated_at: regularUserData.updated_at || new Date().toISOString()
               },
               userRole: "User"
             };
@@ -299,11 +320,15 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       console.log("No specific role found, defaulting to:", userRole);
     }
     
-    // Create a copy of userData as CustomUserData and include the role
+    // Create a customUserData object with all required fields
     const customUserData: CustomUserData = {
-      ...owcUserData,
       id: authUserId,
-      role: userRole || undefined
+      email: owcUserData.email,
+      name: owcUserData.name,
+      password: owcUserData.password,
+      role: userRole,
+      created_at: owcUserData.registerDate || new Date().toISOString(),
+      updated_at: owcUserData.lastvisitDate || new Date().toISOString()
     };
     
     // Store email in session storage
@@ -315,7 +340,7 @@ export const loginWithSupabaseAuth = async (email: string, password: string): Pr
       data: authData, 
       error: null,
       customUser: customUserData,
-      userRole: userRole || undefined
+      userRole: userRole
     };
   } catch (error) {
     console.error("Login error:", error);
