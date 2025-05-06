@@ -14,9 +14,16 @@ interface DashboardCheckerProps {
   onChecked: () => void;
 }
 
-// Define type for the RPC function result
+// Define interfaces for type safety
 interface GroupTitleResult {
   group_title: string;
+}
+
+interface UserGroupData {
+  owc_usergroups: {
+    title: string;
+    id: string | number;
+  };
 }
 
 const DashboardChecker: React.FC<DashboardCheckerProps> = ({ 
@@ -110,22 +117,26 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           } else if (roleData && roleData.group_title && Array.isArray(roleData.group_title) && roleData.group_title.length > 0) {
             // Extract the title from the nested structure
             const groupData = roleData.group_title[0];
-            // Safely access the nested properties
+            
+            // Type guard to check if groupData has the expected structure
             if (groupData && typeof groupData === 'object' && 'owc_usergroups' in groupData) {
-              const userGroups = groupData.owc_usergroups;
-              if (userGroups && typeof userGroups === 'object' && 'title' in userGroups) {
-                const title = userGroups.title;
+              const groupInfo = groupData.owc_usergroups as unknown;
+              
+              // Check that groupInfo is an object with the expected properties
+              if (groupInfo && 
+                  typeof groupInfo === 'object' && 
+                  'title' in groupInfo && 
+                  typeof groupInfo.title === 'string') {
                 
-                if (title && typeof title === 'string') {
-                  console.log("Found role in database using join query:", title);
-                  sessionStorage.setItem('userRole', title);
-                  setDisplayRole(title);
-                  
-                  const dashboardPath = getDashboardPathByGroupTitle(title);
-                  console.log("Redirecting to role-specific dashboard:", dashboardPath);
-                  navigate(dashboardPath, { replace: true });
-                  return;
-                }
+                const title = groupInfo.title;
+                console.log("Found role in database using join query:", title);
+                sessionStorage.setItem('userRole', title);
+                setDisplayRole(title);
+                
+                const dashboardPath = getDashboardPathByGroupTitle(title);
+                console.log("Redirecting to role-specific dashboard:", dashboardPath);
+                navigate(dashboardPath, { replace: true });
+                return;
               }
             }
           }
@@ -133,12 +144,16 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
           // Second approach: Use the direct RPC function
           console.log("Trying alternative direct RPC function approach");
           
+          // Properly specify the generic type for the RPC call
           const { data: directRoleData, error: directRoleError } = await supabase
-            .rpc<GroupTitleResult>('get_user_group_title', { user_email: userEmail });
+            .rpc<GroupTitleResult, { user_email: string }>(
+              'get_user_group_title', 
+              { user_email: userEmail }
+            );
             
           if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
             const result = directRoleData[0];
-            if (result && result.group_title) {
+            if (result && 'group_title' in result && result.group_title) {
               const title = result.group_title;
               console.log("Found role using direct RPC call:", title);
               sessionStorage.setItem('userRole', title);
@@ -204,10 +219,10 @@ const DashboardChecker: React.FC<DashboardCheckerProps> = ({
         // Use type assertion after checking the object structure
         const userGroup = userGroupData.owc_usergroups;
         
-        // Verify that it has the required properties before treating it as a UserGroup
+        // Add null check and type guard
         if (userGroup && typeof userGroup === 'object' && 
             'title' in userGroup && 'id' in userGroup && 
-            typeof userGroup.title === 'string') {
+            userGroup.title && typeof userGroup.title === 'string') {
           
           const title = userGroup.title;
           console.log("Found user role directly:", title);

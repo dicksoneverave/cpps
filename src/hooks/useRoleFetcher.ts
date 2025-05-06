@@ -84,6 +84,7 @@ export const useRoleFetcher = () => {
         } else if (roleData && roleData.group_title && Array.isArray(roleData.group_title) && roleData.group_title.length > 0) {
           // The structure is an array of objects, each with an owc_usergroups property
           const groupData = roleData.group_title[0];
+          // Type guard to check if groupData has the expected structure
           if (groupData && typeof groupData === 'object' && 'owc_usergroups' in groupData) {
             const userGroups = groupData.owc_usergroups;
             // Safely access the title by first checking the property exists
@@ -106,12 +107,16 @@ export const useRoleFetcher = () => {
         // Second approach: Use the direct RPC function
         console.log("Trying alternative direct RPC function approach");
         
+        // Properly specify the generic type for the RPC call
         const { data: directRoleData, error: directRoleError } = await supabase
-          .rpc<GroupTitleResult>('get_user_group_title', { user_email: email });
+          .rpc<GroupTitleResult, { user_email: string }>(
+            'get_user_group_title', 
+            { user_email: email }
+          );
           
         if (!directRoleError && directRoleData && Array.isArray(directRoleData) && directRoleData.length > 0) {
           const result = directRoleData[0];
-          if (result && result.group_title) {
+          if (result && 'group_title' in result && result.group_title) {
             const title = result.group_title;
             console.log("Found role using direct RPC call:", title);
             sessionStorage.setItem('userRole', title);
